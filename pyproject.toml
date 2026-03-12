@@ -1,0 +1,39 @@
+[project]
+name = "ttstt"
+version = "0.1.0"
+description = "macOS 글로벌 단축키 기반 음성인식 → 텍스트 입력 도구. Qwen3-ASR + MLX."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "cmygray", email = "cmygray@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "mlx-audio>=0.4.0",
+    "mlx-lm",
+    "sounddevice",
+    "numpy",
+    "pyobjc-framework-Quartz",
+    "pyobjc-framework-Cocoa",
+    "rumps",
+]
+
+[project.scripts]
+ttstt = "ttstt.app:main"
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller",
+    "ruff",
+    "pytest",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
