@@ -112,7 +112,7 @@ class TtsttApp(rumps.App):
             self._stop_and_process()
 
     def _start_recording(self) -> None:
-        if not sounds.play(self.config.sound.start, wait=True):
+        if not sounds.play(self.config.sound.start):
             print(f"⚠ 사운드 '{self.config.sound.start}'을(를) 찾을 수 없습니다.")
         self.recorder.start()
         self._set_status("녹음 중...", self.ICON_RECORDING)
