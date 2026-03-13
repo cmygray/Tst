@@ -41,6 +41,7 @@ class TtsttApp(rumps.App):
         self._status_item = rumps.MenuItem("대기 중", callback=None)
         self._status_item.set_callback(None)
         self._device_menu = rumps.MenuItem("입력 디바이스")
+        self._populate_devices()
         self._hotkey_item = rumps.MenuItem(
             f"단축키: {config.hotkey.modifier}+{config.hotkey.key}", callback=None
         )
@@ -60,33 +61,35 @@ class TtsttApp(rumps.App):
         self.recorder.close_stream()
         rumps.quit_application()
 
-    @rumps.timer(3)
-    def _refresh_devices(self, _) -> None:
-        """3초마다 디바이스 목록을 갱신한다."""
-        try:
-            if self._device_menu._menu is None:
-                return
-        except AttributeError:
-            return
+    def _populate_devices(self) -> None:
+        """디바이스 목록을 메뉴에 채운다."""
         devices = list_input_devices()
         current = self.recorder.current_device
 
-        # 변경 없으면 스킵
-        new_names = [d["name"] for d in devices]
-        old_names = [item.title for item in self._device_menu.values()]
-        if new_names == old_names:
-            # 체크 상태만 갱신
-            for item in self._device_menu.values():
-                item.state = 1 if item.title == current else 0
-            return
-
-        self._device_menu.clear()
+        if self._device_menu._menu is not None:
+            self._device_menu.clear()
         for dev in devices:
             name = dev["name"]
             item = rumps.MenuItem(name, callback=self._on_device_select)
             if current and current == name:
                 item.state = 1
             self._device_menu.add(item)
+
+    @rumps.timer(3)
+    def _refresh_devices(self, _) -> None:
+        """3초마다 디바이스 목록을 갱신한다."""
+        devices = list_input_devices()
+        current = self.recorder.current_device
+
+        # 변경 없으면 체크 상태만 갱신
+        new_names = [d["name"] for d in devices]
+        old_names = [item.title for item in self._device_menu.values()]
+        if new_names == old_names:
+            for item in self._device_menu.values():
+                item.state = 1 if item.title == current else 0
+            return
+
+        self._populate_devices()
 
     def _on_device_select(self, sender: rumps.MenuItem) -> None:
         """디바이스를 선택한다."""
@@ -128,10 +131,16 @@ class TtsttApp(rumps.App):
     def _process_pipeline(self, audio_data) -> None:
         try:
             if audio_data.size == 0:
+                print("[ttstt] 녹음 데이터 없음 (0 frames)")
                 self._set_status("녹음 없음", self.ICON_IDLE)
                 return
 
+            duration = len(audio_data) / self.config.audio.sample_rate
+            print(f"[ttstt] 오디오 {duration:.1f}초, 인식 중...")
+
             text = asr.transcribe(audio_data, self.config.asr)
+            print(f"[ttstt] ASR 결과: '{text}'")
+
             if not text:
                 self._set_status("인식 실패", self.ICON_IDLE)
                 return
@@ -139,11 +148,13 @@ class TtsttApp(rumps.App):
             if self.config.postprocess.enabled:
                 self._set_status("교정 중...", self.ICON_PROCESSING)
                 text = postprocess.correct(text, self.config.postprocess)
+                print(f"[ttstt] 교정 결과: '{text}'")
 
             clipboard.paste_text(text)
             self._set_status("대기 중", self.ICON_IDLE)
 
         except Exception as e:
+            print(f"[ttstt] 오류: {e}")
             self._set_status(f"오류: {e}", self.ICON_IDLE)
         finally:
             self._processing = False
