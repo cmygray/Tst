@@ -42,11 +42,15 @@ def transcribe(audio: np.ndarray, config: ASRConfig) -> str:
     model = _load_model(config)
 
     language = config.language if config.language else None
+    system_prompt = config.system_prompt if config.system_prompt else None
+    repetition_penalty = config.repetition_penalty if config.repetition_penalty > 0 else None
 
     result = model.generate(
         audio,
         max_tokens=config.max_tokens,
         language=language,
+        system_prompt=system_prompt,
+        repetition_penalty=repetition_penalty,
     )
 
     return result.text.strip()

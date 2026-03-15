@@ -7,6 +7,8 @@ mlx-lm을 사용해 ASR 결과를 교정한다.
 
 from __future__ import annotations
 
+import re
+
 from ttstt.config import PostprocessConfig
 
 # 모델은 lazy load
@@ -54,7 +56,10 @@ def correct(text: str, config: PostprocessConfig) -> str:
         {"role": "user", "content": text},
     ]
 
-    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    prompt = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True,
+        enable_thinking=False,
+    )
 
     result = generate(
         model,
@@ -63,4 +68,9 @@ def correct(text: str, config: PostprocessConfig) -> str:
         max_tokens=config.max_tokens,
     )
 
-    return result.strip() if result else text
+    if not result:
+        return text
+
+    # Qwen3 thinking 블록 제거
+    result = re.sub(r"<think>.*?</think>", "", result, flags=re.DOTALL)
+    return result.strip() or text

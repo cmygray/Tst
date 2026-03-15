@@ -17,7 +17,7 @@ import rumps
 from ttstt import asr, clipboard, postprocess, sounds
 from ttstt.audio import Recorder, list_input_devices
 from ttstt.config import Config, load_config
-from ttstt.hotkey import check_accessibility, listen
+from ttstt.hotkey import check_accessibility, listen, listen_tap_hold
 
 
 class TtsttApp(rumps.App):
@@ -42,9 +42,11 @@ class TtsttApp(rumps.App):
         self._status_item.set_callback(None)
         self._device_menu = rumps.MenuItem("입력 디바이스")
         self._populate_devices()
-        self._hotkey_item = rumps.MenuItem(
-            f"단축키: {config.hotkey.modifier}+{config.hotkey.key}", callback=None
-        )
+        if config.hotkey.mode == "tap_hold":
+            hotkey_label = f"단축키: {config.hotkey.key} 탭+홀드"
+        else:
+            hotkey_label = f"단축키: {config.hotkey.modifier}+{config.hotkey.key}"
+        self._hotkey_item = rumps.MenuItem(hotkey_label, callback=None)
         self._hotkey_item.set_callback(None)
         self._quit_item = rumps.MenuItem("종료", callback=self._on_quit)
 
@@ -110,6 +112,18 @@ class TtsttApp(rumps.App):
             self._start_recording()
         else:
             self._stop_and_process()
+
+    def on_record_start(self) -> None:
+        """녹음 시작 콜백 (tap_hold 모드용)."""
+        if self._processing or self.recorder.recording:
+            return
+        self._start_recording()
+
+    def on_record_stop(self) -> None:
+        """녹음 중지 콜백 (tap_hold 모드용)."""
+        if not self.recorder.recording:
+            return
+        self._stop_and_process()
 
     def _start_recording(self) -> None:
         if not sounds.play(self.config.sound.start):
@@ -187,11 +201,23 @@ def main() -> None:
     threading.Thread(target=_preload, daemon=True).start()
 
     # 글로벌 핫키를 별도 스레드에서 실행
-    hotkey_thread = threading.Thread(
-        target=listen,
-        args=(config.hotkey.modifier, config.hotkey.key, app.on_toggle),
-        daemon=True,
-    )
+    if config.hotkey.mode == "tap_hold":
+        hotkey_thread = threading.Thread(
+            target=listen_tap_hold,
+            args=(
+                config.hotkey.key,
+                app.on_record_start,
+                app.on_record_stop,
+                config.hotkey.hold_threshold,
+            ),
+            daemon=True,
+        )
+    else:
+        hotkey_thread = threading.Thread(
+            target=listen,
+            args=(config.hotkey.modifier, config.hotkey.key, app.on_toggle),
+            daemon=True,
+        )
     hotkey_thread.start()
 
     # rumps 이벤트 루프 (메인 스레드)

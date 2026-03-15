@@ -26,6 +26,8 @@ class ASRConfig:
     model: str = "mlx-community/Qwen3-ASR-1.7B-8bit"
     max_tokens: int = 8192
     language: str = ""
+    system_prompt: str = ""
+    repetition_penalty: float = 0.0
 
 
 @dataclass
@@ -38,8 +40,10 @@ class PostprocessConfig:
 
 @dataclass
 class HotkeyConfig:
+    mode: str = "tap_hold"
     modifier: str = "cmd+shift"
-    key: str = "l"
+    key: str = "space"
+    hold_threshold: float = 0.3
 
 
 @dataclass

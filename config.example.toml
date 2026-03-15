@@ -13,6 +13,13 @@ max_tokens = 8192
 # 한국어+영어 혼합 환경에서는 빈 문자열(자동감지)을 권장
 language = ""
 
+# ASR 시스템 프롬프트 (핫워드, 언어 힌트 등 soft biasing)
+# 자주 쓰는 용어를 넣으면 인식 정확도가 올라갈 수 있음
+system_prompt = ""
+
+# 반복 출력 방지 (0이면 비활성화, 권장: 1.1~1.3)
+repetition_penalty = 0.0
+
 [postprocess]
 # 후처리 LLM 활성화 여부
 enabled = false
@@ -33,11 +40,17 @@ system_prompt = """음성인식 결과를 교정해주세요.
 - 교정된 텍스트만 출력 (설명 없이)"""
 
 [hotkey]
-# 글로벌 단축키 (modifier + key)
-# modifier: "cmd+shift", "cmd+option", "cmd+ctrl" 등
-# key: 알파벳 소문자 한 글자
+# 모드: "tap_hold" (길게 누르면 녹음, 짧게 누르면 일반 입력) 또는 "toggle" (누를 때마다 토글)
+mode = "tap_hold"
+
+# 키: "space", 알파벳 소문자, "\\" 등
+key = "space"
+
+# 홀드 판정 시간 (초, tap_hold 모드 전용)
+hold_threshold = 0.3
+
+# modifier: toggle 모드에서만 사용 ("cmd+shift", "cmd+option" 등)
 modifier = "cmd+shift"
-key = "l"
 
 [audio]
 # 마이크 디바이스 (빈 문자열이면 시스템 기본 인풋)

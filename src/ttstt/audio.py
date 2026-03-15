@@ -67,8 +67,14 @@ class Recorder:
     def close_stream(self) -> None:
         """오디오 스트림을 닫는다."""
         if self._stream is not None:
-            self._stream.stop()
-            self._stream.close()
+            try:
+                self._stream.stop()
+            except Exception:
+                pass
+            try:
+                self._stream.close()
+            except Exception:
+                pass
             self._stream = None
         self.recording = False
 
