@@ -61,6 +61,31 @@ class SoundConfig:
     stop: str = "Submarine"
 
 
+MEETING_OUTPUT_DIR = Path.home() / ".local" / "share" / "ttstt" / "meetings"
+
+
+@dataclass
+class MeetingASRConfig:
+    model: str = "mlx-community/Qwen3-ASR-1.7B-8bit"
+    max_tokens: int = 32768
+    language: str = ""
+    system_prompt: str = ""
+    repetition_penalty: float = 0.0
+
+
+@dataclass
+class MeetingConfig:
+    chunk_duration: int = 60
+    output_dir: str = ""
+    asr: MeetingASRConfig = field(default_factory=MeetingASRConfig)
+
+    @property
+    def resolved_output_dir(self) -> Path:
+        if self.output_dir:
+            return Path(self.output_dir).expanduser()
+        return MEETING_OUTPUT_DIR
+
+
 @dataclass
 class Config:
     asr: ASRConfig = field(default_factory=ASRConfig)
@@ -68,6 +93,7 @@ class Config:
     hotkey: HotkeyConfig = field(default_factory=HotkeyConfig)
     audio: AudioConfig = field(default_factory=AudioConfig)
     sound: SoundConfig = field(default_factory=SoundConfig)
+    meeting: MeetingConfig = field(default_factory=MeetingConfig)
 
 
 def load_config(path: Path | None = None) -> Config:
@@ -87,5 +113,15 @@ def load_config(path: Path | None = None) -> Config:
             for k, v in data[section].items():
                 if hasattr(sub, k):
                     setattr(sub, k, v)
+
+    if "meeting" in data:
+        meeting_data = data["meeting"]
+        for k, v in meeting_data.items():
+            if k == "asr" and isinstance(v, dict):
+                for ak, av in v.items():
+                    if hasattr(config.meeting.asr, ak):
+                        setattr(config.meeting.asr, ak, av)
+            elif hasattr(config.meeting, k):
+                setattr(config.meeting, k, v)
 
     return config

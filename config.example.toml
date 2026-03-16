@@ -72,3 +72,21 @@ start = "Blow"
 
 # 녹음 종료 사운드
 stop = "Submarine"
+
+[meeting]
+# 청크 길이 (초). 이 간격마다 녹음을 전사하여 파일에 추가한다.
+chunk_duration = 60
+
+# 출력 디렉토리 (빈 문자열이면 ~/.local/share/ttstt/meetings)
+output_dir = ""
+
+[meeting.asr]
+# 회의 모드 전용 ASR 설정 (일반 모드와 별도)
+model = "mlx-community/Qwen3-ASR-1.7B-8bit"
+
+# 회의 모드는 긴 청크를 처리하므로 max_tokens를 크게 설정
+max_tokens = 32768
+
+language = ""
+system_prompt = ""
+repetition_penalty = 0.0

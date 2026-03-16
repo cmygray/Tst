@@ -20,6 +20,7 @@ dependencies = [
 
 [project.scripts]
 ttstt = "ttstt.app:main"
+ttstt-meeting = "ttstt.meeting:main"
 
 [project.optional-dependencies]
 dev = [
