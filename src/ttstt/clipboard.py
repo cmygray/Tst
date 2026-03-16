@@ -14,6 +14,9 @@ from AppKit import NSData, NSPasteboard, NSPasteboardItem
 # 'V' 키의 가상 키코드 (ANSI)
 _VK_V = 0x09
 
+# 마지막으로 붙여넣기 시도한 텍스트 (repaste용)
+_last_text: str | None = None
+
 
 def _backup() -> list[dict[str, NSData]]:
     """현재 클립보드의 모든 아이템과 타입을 백업한다."""
@@ -70,9 +73,6 @@ def _simulate_cmd_v() -> None:
 
     Quartz.CGEventPost(Quartz.kCGAnnotatedSessionEventTap, down)
     Quartz.CGEventPost(Quartz.kCGAnnotatedSessionEventTap, up)
-
-
-_last_text: str | None = None
 
 
 def paste_text(text: str) -> None:

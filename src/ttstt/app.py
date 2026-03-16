@@ -222,6 +222,7 @@ def main() -> None:
                 app.on_record_start,
                 app.on_record_stop,
                 config.hotkey.hold_threshold,
+                app.on_repaste,
             ),
             daemon=True,
         )
