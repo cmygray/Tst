@@ -52,6 +52,10 @@ hold_threshold = 0.3
 # modifier: toggle 모드에서만 사용 ("cmd+shift", "cmd+option" 등)
 modifier = "cmd+shift"
 
+# 재붙여넣기 핫키 (마지막 전사 텍스트를 다시 붙여넣기)
+repaste_modifier = "cmd+shift"
+repaste_key = ";"
+
 [audio]
 # 마이크 디바이스 (빈 문자열이면 시스템 기본 인풋)
 device = ""

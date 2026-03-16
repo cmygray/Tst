@@ -149,7 +149,7 @@ def listen_tap_hold(
     hold_threshold: float = 0.3,
     on_repaste: Callable[[], None] | None = None,
     repaste_key: str = "\\",
-    repaste_threshold: float = 0.3,
+    repaste_threshold: float = 0.13,
 ) -> None:
     """탭 & 홀드 방식으로 글로벌 핫키를 감지한다.
 
@@ -185,9 +185,19 @@ def listen_tap_hold(
         "timer": None,
         "inject_count": 0,
         "press_flags": 0,
-        "repaste_last_up": 0.0,  # repaste 키의 마지막 keyUp 시각
+        "repaste_pending": False,  # 첫 번째 \\ 대기 중
+        "repaste_timer": None,  # 더블탭 대기 타이머
         "repaste_consumed": False,  # 더블탭 감지로 두 번째 키를 소비 중
     }
+
+    def _inject_repaste_key():
+        """더블탭 대기 타임아웃: 단일 \\ 입력으로 확정 → 키 주입."""
+        state["repaste_pending"] = False
+        state["inject_count"] += 2
+        down = Quartz.CGEventCreateKeyboardEvent(None, repaste_keycode, True)
+        up = Quartz.CGEventCreateKeyboardEvent(None, repaste_keycode, False)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, down)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, up)
 
     def _start_if_held():
         """타이머 콜백: threshold 경과 후에도 키가 눌려있으면 녹음 시작."""
@@ -209,28 +219,37 @@ def listen_tap_hold(
             event, Quartz.kCGKeyboardEventKeycode
         )
 
-        # repaste 키 (\\) 더블탭 감지
+        # repaste 키 (\\) 더블탭 감지 — 지연 방식
         if repaste_keycode is not None and keycode == repaste_keycode:
+            # 재주입된 이벤트는 그대로 통과
+            if state["inject_count"] > 0:
+                state["inject_count"] -= 1
+                return event
             if event_type == Quartz.kCGEventKeyDown:
                 if state["repaste_consumed"]:
                     return None  # 더블탭 두 번째 keyDown 소비
-                now = time.monotonic()
-                if (now - state["repaste_last_up"]) < repaste_threshold:
-                    # 더블탭 감지 → 첫 번째 \\ 삭제 후 콜백
+                if state["repaste_pending"]:
+                    # 두 번째 \\ → 더블탭 확정
                     state["repaste_consumed"] = True
-                    state["repaste_last_up"] = 0.0
-                    bs_d = Quartz.CGEventCreateKeyboardEvent(None, 0x33, True)
-                    bs_u = Quartz.CGEventCreateKeyboardEvent(None, 0x33, False)
-                    Quartz.CGEventPost(Quartz.kCGHIDEventTap, bs_d)
-                    Quartz.CGEventPost(Quartz.kCGHIDEventTap, bs_u)
+                    state["repaste_pending"] = False
+                    if state["repaste_timer"]:
+                        state["repaste_timer"].cancel()
+                        state["repaste_timer"] = None
                     on_repaste()
                     return None
-                return event  # 첫 번째 \\ 은 그대로 통과
+                # 첫 번째 \\ → 대기 (즉시 통과시키지 않음)
+                state["repaste_pending"] = True
+                timer = threading.Timer(repaste_threshold, _inject_repaste_key)
+                timer.daemon = True
+                timer.start()
+                state["repaste_timer"] = timer
+                return None
             elif event_type == Quartz.kCGEventKeyUp:
                 if state["repaste_consumed"]:
                     state["repaste_consumed"] = False
                     return None  # 더블탭 두 번째 keyUp 소비
-                state["repaste_last_up"] = time.monotonic()
+                if state["repaste_pending"]:
+                    return None  # 첫 번째 keyUp도 대기 중이므로 소비
                 return event
             return event
 
