@@ -43,7 +43,7 @@ class HotkeyConfig:
     mode: str = "tap_hold"
     modifier: str = "cmd+shift"
     key: str = "space"
-    hold_threshold: float = 0.15
+    hold_threshold: float = 0.20
     repaste_modifier: str = "cmd+shift"
     repaste_key: str = ";"
 
