@@ -15,7 +15,7 @@ macOS 글로벌 단축키 기반 음성인식 → 텍스트 입력 도구.
 ```bash
 git clone https://github.com/cmygray/ttstt.git
 cd ttstt
-uv sync --prerelease=allow
+uv tool install -e .
 ```
 
 > 첫 실행 시 ASR 모델(~1.7GB)이 HuggingFace에서 다운로드된다. 이후에는 캐시되어 오프라인 실행 가능.
@@ -23,10 +23,12 @@ uv sync --prerelease=allow
 ## 실행
 
 ```bash
-uv run ttstt
+ttstt
 ```
 
-메뉴바에 🎤 아이콘이 나타나면 준비 완료.
+어디서든 실행 가능. 메뉴바에 🎤 아이콘이 나타나면 준비 완료.
+
+> 개발 중이라면 `-e` 플래그 덕분에 소스 수정이 즉시 반영된다. 재설치 불필요.
 
 ### 접근성 권한
 
