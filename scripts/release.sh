@@ -1,16 +1,19 @@
 #!/bin/bash
-# scripts/release.sh — 빌드 + zip 생성 + GitHub Release
+# scripts/release.sh — 빌드 + DMG 생성 + GitHub Release
 set -euo pipefail
 
 VERSION="${1:?Usage: ./scripts/release.sh v0.2.0}"
-ARTIFACT="dist/ttstt-macos-arm64.zip"
+ARTIFACT="dist/ttstt-${VERSION}-macos-arm64.dmg"
 
 echo "=== 클린 빌드 ==="
 rm -rf build dist
 uv run python -m PyInstaller --noconfirm ttstt.spec
 
-echo "=== zip 생성 ==="
-ditto -c -k --keepParent dist/ttstt.app "$ARTIFACT"
+echo "=== DMG 생성 ==="
+hdiutil create -volname "ttstt" \
+  -srcfolder dist/ttstt.app \
+  -ov -format UDZO \
+  "$ARTIFACT"
 
 echo "=== 태그 & 릴리스 ==="
 git tag -d "$VERSION" 2>/dev/null || true
