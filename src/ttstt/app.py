@@ -43,44 +43,39 @@ class TtsttApp(rumps.App):
         self._hotkey_stop_event: threading.Event | None = None
         self._hotkey_thread: threading.Thread | None = None
 
+        self._hotkey_active = True
+
         # 메뉴 구성
         self._status_item = rumps.MenuItem("대기 중", callback=None)
         self._status_item.set_callback(None)
         self._device_menu = rumps.MenuItem("입력 디바이스")
         self._populate_devices()
-        self._hotkey_item = rumps.MenuItem(
-            self._hotkey_label(), callback=None
-        )
-        self._hotkey_item.set_callback(None)
-        self._repaste_item = rumps.MenuItem(
-            self._repaste_label(), callback=None,
-        )
-        self._repaste_item.set_callback(None)
-        self._settings_item = rumps.MenuItem("설정...", callback=self._on_settings)
+        self._pause_item = rumps.MenuItem("일시정지", callback=self._on_pause)
+        self._settings_item = rumps.MenuItem("설정", callback=self._on_settings)
         self._quit_item = rumps.MenuItem("종료", callback=self._on_quit)
 
         self.menu = [
             self._status_item,
-            None,  # separator
+            None,
             self._device_menu,
-            self._hotkey_item,
-            self._repaste_item,
+            self._pause_item,
             None,
             self._settings_item,
             self._quit_item,
         ]
 
-    def _hotkey_label(self) -> str:
-        hk = self.config.hotkey
-        if hk.mode == "tap_hold":
-            return f"단축키: {hk.key} 탭+홀드"
-        return f"단축키: {hk.modifier}+{hk.key}"
-
-    def _repaste_label(self) -> str:
-        hk = self.config.hotkey
-        if hk.mode == "tap_hold":
-            return "재붙여넣기: \\ 더블탭"
-        return f"재붙여넣기: {hk.repaste_modifier}+{hk.repaste_key}"
+    def _on_pause(self, _) -> None:
+        if self._hotkey_active:
+            if self._hotkey_stop_event:
+                self._hotkey_stop_event.set()
+            self._hotkey_active = False
+            self._pause_item.title = "재개"
+            self._set_status("일시정지")
+        else:
+            self.start_hotkey()
+            self._hotkey_active = True
+            self._pause_item.title = "일시정지"
+            self._set_status("대기 중")
 
     def start_hotkey(self) -> None:
         """핫키 리스너 스레드를 시작한다."""
@@ -126,9 +121,8 @@ class TtsttApp(rumps.App):
     def _on_settings_saved(self, result) -> None:
         from ttstt.settings import SettingsResult
         result: SettingsResult
+        # 설정 창에서 노출하지 않는 값 보존
         result.hotkey.hold_threshold = self.config.hotkey.hold_threshold
-        result.hotkey.repaste_modifier = self.config.hotkey.repaste_modifier
-        result.hotkey.repaste_key = self.config.hotkey.repaste_key
 
         self.config.hotkey = result.hotkey
         self.config.appearance = result.appearance
@@ -138,10 +132,6 @@ class TtsttApp(rumps.App):
         icons_dir = self._resolve_icons_dir(result.appearance.icon_theme)
         self.icon = str(icons_dir / "stt-idle@2x.png")
         self.template = result.appearance.icon_theme == "speech-bubble"
-
-        # 메뉴 레이블 갱신
-        self._hotkey_item.title = self._hotkey_label()
-        self._repaste_item.title = self._repaste_label()
 
         # 핫키 재시작
         self._restart_hotkey()

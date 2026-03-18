@@ -29,6 +29,9 @@ from ttstt.hotkey import KEY_OPTIONS, MODIFIER_OPTIONS
 ICON_THEMES = ["speech-bubble", "blob"]
 ICON_THEME_LABELS = {"speech-bubble": "말풍선", "blob": "블롭"}
 
+MODE_LABELS = {"tap_hold": "탭+홀드", "toggle": "조합키 토글"}
+MODE_KEYS = {v: k for k, v in MODE_LABELS.items()}
+
 # 모듈 레벨에서 ObjC 객체 참조를 유지하여 GC 방지
 _refs: dict = {}
 
@@ -39,7 +42,7 @@ class SettingsResult:
     appearance: AppearanceConfig
 
 
-def _make_label(text: str, x: float, y: float, width: float = 80) -> NSTextField:
+def _make_label(text: str, x: float, y: float, width: float = 100) -> NSTextField:
     label = NSTextField.alloc().initWithFrame_(NSMakeRect(x, y, width, 20))
     label.setStringValue_(text)
     label.setBezeled_(False)
@@ -79,14 +82,10 @@ def show_settings(
     # 이전 창이 있으면 재사용 (GC로 인한 ObjC 크래시 방지)
     if "window" in _refs:
         win = _refs["window"]
-        if win.isVisible():
-            win.orderFrontRegardless()
-            return
-        # 숨겨진 창 다시 표시 (새 객체 생성 없음)
         win.orderFrontRegardless()
         return
 
-    width, height = 320, 240
+    width, height = 340, 330
     style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
     window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
         NSMakeRect(0, 0, width, height), style, 2, False
@@ -95,11 +94,12 @@ def show_settings(
     window.center()
 
     content = window.contentView()
-    control_x, control_w, row_h = 110, 180, 36
+    label_x, control_x, control_w, row_h = 20, 120, 190, 32
 
-    # 아이콘 테마
-    y = height - 45
-    content.addSubview_(_make_label("아이콘", 20, y))
+    y = height - 40
+
+    # --- 외관 ---
+    content.addSubview_(_make_label("아이콘 테마", label_x, y))
     theme_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
         NSMakeRect(control_x, y - 2, control_w, 26), False
     )
@@ -109,19 +109,20 @@ def show_settings(
     theme_popup.selectItemWithTitle_(current_label)
     content.addSubview_(theme_popup)
 
-    # 모드
-    y -= row_h
-    content.addSubview_(_make_label("모드", 20, y))
+    y -= row_h + 10
+
+    # --- 핫키 ---
+    content.addSubview_(_make_label("녹음 모드", label_x, y))
     mode_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
         NSMakeRect(control_x, y - 2, control_w, 26), False
     )
-    mode_popup.addItemsWithTitles_(["tap_hold", "toggle"])
-    mode_popup.selectItemWithTitle_(hotkey_config.mode)
+    mode_labels = list(MODE_LABELS.values())
+    mode_popup.addItemsWithTitles_(mode_labels)
+    mode_popup.selectItemWithTitle_(MODE_LABELS.get(hotkey_config.mode, mode_labels[0]))
     content.addSubview_(mode_popup)
 
-    # 키
     y -= row_h
-    content.addSubview_(_make_label("키", 20, y))
+    content.addSubview_(_make_label("녹음 키", label_x, y))
     key_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
         NSMakeRect(control_x, y - 2, control_w, 26), False
     )
@@ -129,9 +130,9 @@ def show_settings(
     key_popup.selectItemWithTitle_(hotkey_config.key)
     content.addSubview_(key_popup)
 
-    # Modifier
     y -= row_h
-    content.addSubview_(_make_label("Modifier", 20, y))
+    modifier_label = _make_label("조합키", label_x, y)
+    content.addSubview_(modifier_label)
     modifier_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
         NSMakeRect(control_x, y - 2, control_w, 26), False
     )
@@ -141,26 +142,53 @@ def show_settings(
     modifier_popup.setEnabled_(hotkey_config.mode == "toggle")
     content.addSubview_(modifier_popup)
 
-    # 콜백
+    y -= row_h + 10
+
+    # --- 재붙여넣기 ---
+    content.addSubview_(_make_label("재붙여넣기 키", label_x, y))
+    repaste_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
+        NSMakeRect(control_x, y - 2, control_w, 26), False
+    )
+    repaste_popup.addItemsWithTitles_(KEY_OPTIONS)
+    repaste_popup.selectItemWithTitle_(hotkey_config.repaste_key)
+    content.addSubview_(repaste_popup)
+
+    y -= row_h
+    repaste_mod_label = _make_label("재붙여넣기 조합", label_x, y)
+    content.addSubview_(repaste_mod_label)
+    repaste_mod_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
+        NSMakeRect(control_x, y - 2, control_w, 26), False
+    )
+    repaste_mod_popup.addItemsWithTitles_(MODIFIER_OPTIONS)
+    if hotkey_config.repaste_modifier in MODIFIER_OPTIONS:
+        repaste_mod_popup.selectItemWithTitle_(hotkey_config.repaste_modifier)
+    # tap_hold 모드에서는 더블탭이므로 modifier 비활성
+    repaste_mod_popup.setEnabled_(hotkey_config.mode == "toggle")
+    content.addSubview_(repaste_mod_popup)
+
+    # --- 콜백 ---
     def on_mode_changed(sender):
-        is_toggle = mode_popup.titleOfSelectedItem() == "toggle"
+        is_toggle = MODE_KEYS.get(mode_popup.titleOfSelectedItem()) == "toggle"
         modifier_popup.setEnabled_(is_toggle)
+        repaste_mod_popup.setEnabled_(is_toggle)
 
     def on_save_clicked(sender):
-        # 테마 라벨 → 테마 키로 변환
-        selected_label = theme_popup.titleOfSelectedItem()
-        theme_key = next(k for k, v in ICON_THEME_LABELS.items() if v == selected_label)
+        selected_theme_label = theme_popup.titleOfSelectedItem()
+        theme_key = next(k for k, v in ICON_THEME_LABELS.items() if v == selected_theme_label)
+        mode_key = MODE_KEYS.get(mode_popup.titleOfSelectedItem(), "tap_hold")
 
         result = SettingsResult(
             hotkey=HotkeyConfig(
-                mode=mode_popup.titleOfSelectedItem(),
+                mode=mode_key,
                 key=key_popup.titleOfSelectedItem(),
                 modifier=modifier_popup.titleOfSelectedItem(),
+                repaste_key=repaste_popup.titleOfSelectedItem(),
+                repaste_modifier=repaste_mod_popup.titleOfSelectedItem(),
             ),
             appearance=AppearanceConfig(icon_theme=theme_key),
         )
         on_save(result)
-        window.orderOut_(None)  # close() 대신 숨김 — GC 방지
+        window.orderOut_(None)
 
     delegate = _Delegate.alloc().init()
     delegate.setup(on_mode_changed, on_save_clicked)
@@ -168,8 +196,8 @@ def show_settings(
     mode_popup.setTarget_(delegate)
     mode_popup.setAction_(b"onModeChanged:")
 
-    # 저장 버튼
-    y -= row_h + 10
+    # --- 저장 버튼 ---
+    y -= row_h + 8
     save_btn = NSButton.alloc().initWithFrame_(NSMakeRect(width - 100, y, 80, 32))
     save_btn.setTitle_("저장")
     save_btn.setBezelStyle_(NSBezelStyleRounded)
@@ -180,6 +208,7 @@ def show_settings(
     # 모듈 레벨에서 강한 참조 유지 (GC 방지)
     _refs["window"] = window
     _refs["delegate"] = delegate
-    _refs["popups"] = (theme_popup, mode_popup, key_popup, modifier_popup)
+    _refs["popups"] = (theme_popup, mode_popup, key_popup, modifier_popup,
+                       repaste_popup, repaste_mod_popup)
 
     window.orderFrontRegardless()
