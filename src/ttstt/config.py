@@ -151,14 +151,18 @@ def save_settings(
     path = path or CONFIG_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    def _toml_str(val: str) -> str:
+        """TOML 문자열 값을 이스케이프한다."""
+        return val.replace("\\", "\\\\").replace('"', '\\"')
+
     hotkey_toml = (
         "[hotkey]\n"
-        f'mode = "{hotkey.mode}"\n'
-        f'key = "{hotkey.key}"\n'
-        f'modifier = "{hotkey.modifier}"\n'
+        f'mode = "{_toml_str(hotkey.mode)}"\n'
+        f'key = "{_toml_str(hotkey.key)}"\n'
+        f'modifier = "{_toml_str(hotkey.modifier)}"\n'
         f"hold_threshold = {hotkey.hold_threshold}\n"
-        f'repaste_modifier = "{hotkey.repaste_modifier}"\n'
-        f'repaste_key = "{hotkey.repaste_key}"\n'
+        f'repaste_modifier = "{_toml_str(hotkey.repaste_modifier)}"\n'
+        f'repaste_key = "{_toml_str(hotkey.repaste_key)}"\n'
     )
     appearance_toml = (
         "[appearance]\n"
