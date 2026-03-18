@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -125,3 +126,33 @@ def load_config(path: Path | None = None) -> Config:
                 setattr(config.meeting, k, v)
 
     return config
+
+
+def save_hotkey_config(hotkey: HotkeyConfig, path: Path | None = None) -> None:
+    """[hotkey] 섹션만 config.toml에 저장한다. 다른 섹션은 보존."""
+    path = path or CONFIG_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    hotkey_toml = (
+        "[hotkey]\n"
+        f'mode = "{hotkey.mode}"\n'
+        f'key = "{hotkey.key}"\n'
+        f'modifier = "{hotkey.modifier}"\n'
+        f"hold_threshold = {hotkey.hold_threshold}\n"
+        f'repaste_modifier = "{hotkey.repaste_modifier}"\n'
+        f'repaste_key = "{hotkey.repaste_key}"\n'
+    )
+
+    if not path.exists():
+        path.write_text(hotkey_toml)
+        return
+
+    text = path.read_text()
+    # [hotkey] 섹션을 찾아 교체 (다음 [섹션] 또는 EOF까지)
+    pattern = r"\[hotkey\]\n(?:(?!\n\[).)*"
+    if re.search(pattern, text, re.DOTALL):
+        text = re.sub(pattern, hotkey_toml.rstrip(), text, flags=re.DOTALL)
+    else:
+        text = text.rstrip() + "\n\n" + hotkey_toml
+
+    path.write_text(text)

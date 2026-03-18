@@ -17,7 +17,7 @@ import rumps
 
 from ttstt import asr, clipboard, postprocess, sounds
 from ttstt.audio import Recorder, list_input_devices
-from ttstt.config import Config, load_config
+from ttstt.config import Config, HotkeyConfig, load_config, save_hotkey_config
 from ttstt.hotkey import check_accessibility, listen, listen_tap_hold
 
 
@@ -37,23 +37,24 @@ class TtsttApp(rumps.App):
             device=config.audio.device,
         )
         self._processing = False
+        self._hotkey_stop_event: threading.Event | None = None
+        self._hotkey_thread: threading.Thread | None = None
 
         # 메뉴 구성
         self._status_item = rumps.MenuItem("대기 중", callback=None)
         self._status_item.set_callback(None)
         self._device_menu = rumps.MenuItem("입력 디바이스")
         self._populate_devices()
-        if config.hotkey.mode == "tap_hold":
-            hotkey_label = f"단축키: {config.hotkey.key} 탭+홀드"
-        else:
-            hotkey_label = f"단축키: {config.hotkey.modifier}+{config.hotkey.key}"
-        self._hotkey_item = rumps.MenuItem(hotkey_label, callback=None)
+        self._hotkey_item = rumps.MenuItem(
+            self._hotkey_label(), callback=None
+        )
         self._hotkey_item.set_callback(None)
         self._repaste_item = rumps.MenuItem(
             f"재붙여넣기: {config.hotkey.repaste_modifier}+{config.hotkey.repaste_key}",
             callback=None,
         )
         self._repaste_item.set_callback(None)
+        self._settings_item = rumps.MenuItem("설정...", callback=self._on_settings)
         self._quit_item = rumps.MenuItem("종료", callback=self._on_quit)
 
         self.menu = [
@@ -63,8 +64,72 @@ class TtsttApp(rumps.App):
             self._hotkey_item,
             self._repaste_item,
             None,
+            self._settings_item,
             self._quit_item,
         ]
+
+    def _hotkey_label(self) -> str:
+        hk = self.config.hotkey
+        if hk.mode == "tap_hold":
+            return f"단축키: {hk.key} 탭+홀드"
+        return f"단축키: {hk.modifier}+{hk.key}"
+
+    def start_hotkey(self) -> None:
+        """핫키 리스너 스레드를 시작한다."""
+        self._hotkey_stop_event = threading.Event()
+        hk = self.config.hotkey
+        if hk.mode == "tap_hold":
+            self._hotkey_thread = threading.Thread(
+                target=listen_tap_hold,
+                args=(
+                    hk.key,
+                    self.on_record_start,
+                    self.on_record_stop,
+                    hk.hold_threshold,
+                    self.on_repaste,
+                ),
+                kwargs={"stop_event": self._hotkey_stop_event},
+                daemon=True,
+            )
+        else:
+            self._hotkey_thread = threading.Thread(
+                target=listen,
+                args=(hk.modifier, hk.key, self.on_toggle),
+                kwargs={
+                    "extra_bindings": [
+                        (hk.repaste_modifier, hk.repaste_key, self.on_repaste),
+                    ],
+                    "stop_event": self._hotkey_stop_event,
+                },
+                daemon=True,
+            )
+        self._hotkey_thread.start()
+
+    def _restart_hotkey(self) -> None:
+        if self._hotkey_stop_event:
+            self._hotkey_stop_event.set()
+        if self._hotkey_thread:
+            self._hotkey_thread.join(timeout=2.0)
+        self.start_hotkey()
+
+    def _on_settings(self, _) -> None:
+        from ttstt.settings import show_settings
+        show_settings(self.config.hotkey, self._on_settings_saved)
+
+    def _on_settings_saved(self, new_hotkey: HotkeyConfig) -> None:
+        # 기존 설정에서 threshold, repaste 설정 보존
+        new_hotkey.hold_threshold = self.config.hotkey.hold_threshold
+        new_hotkey.repaste_modifier = self.config.hotkey.repaste_modifier
+        new_hotkey.repaste_key = self.config.hotkey.repaste_key
+        save_hotkey_config(new_hotkey)
+        print(f"[ttstt] 핫키 설정 저장됨: {new_hotkey.mode}, {new_hotkey.key}")
+        rumps.notification(
+            title="ttstt",
+            subtitle="설정 저장 완료",
+            message="앱을 재시작하면 적용됩니다.",
+        )
+        self.recorder.close_stream()
+        rumps.quit_application()
 
     def _on_quit(self, _) -> None:
         self.recorder.close_stream()
@@ -224,28 +289,7 @@ def main() -> None:
     threading.Thread(target=_preload, daemon=True).start()
 
     # 글로벌 핫키를 별도 스레드에서 실행
-    if config.hotkey.mode == "tap_hold":
-        hotkey_thread = threading.Thread(
-            target=listen_tap_hold,
-            args=(
-                config.hotkey.key,
-                app.on_record_start,
-                app.on_record_stop,
-                config.hotkey.hold_threshold,
-                app.on_repaste,
-            ),
-            daemon=True,
-        )
-    else:
-        hotkey_thread = threading.Thread(
-            target=listen,
-            args=(config.hotkey.modifier, config.hotkey.key, app.on_toggle),
-            kwargs={"extra_bindings": [
-                (config.hotkey.repaste_modifier, config.hotkey.repaste_key, app.on_repaste),
-            ]},
-            daemon=True,
-        )
-    hotkey_thread.start()
+    app.start_hotkey()
 
     # rumps 이벤트 루프 (메인 스레드)
     app.run()

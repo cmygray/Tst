@@ -28,6 +28,12 @@ _KEY_CODES: dict[str, int] = {
     ";": 0x29,
 }
 
+# 설정 UI에서 사용할 키 목록
+KEY_OPTIONS = list(_KEY_CODES.keys())
+
+# 설정 UI에서 사용할 modifier 프리셋
+MODIFIER_OPTIONS = ["cmd+shift", "cmd+option", "ctrl+shift", "cmd+ctrl"]
+
 # modifier 문자열 → CGEventFlag 매핑
 _MODIFIER_FLAGS: dict[str, int] = {
     "cmd": Quartz.kCGEventFlagMaskCommand,
@@ -87,11 +93,29 @@ def check_accessibility() -> bool:
     return trusted
 
 
+def _setup_stop_watcher(
+    stop_event: threading.Event | None,
+    tap,
+    run_loop,
+) -> None:
+    """stop_event가 set되면 CGEventTap을 비활성화하고 CFRunLoop를 중지한다."""
+    if stop_event is None:
+        return
+
+    def _watcher():
+        stop_event.wait()
+        Quartz.CGEventTapEnable(tap, False)
+        Quartz.CFRunLoopStop(run_loop)
+
+    threading.Thread(target=_watcher, daemon=True).start()
+
+
 Binding = tuple[str, str, Callable[[], None]]
 
 
 def listen(modifier: str, key: str, on_toggle: Callable[[], None],
-           extra_bindings: list[Binding] | None = None) -> None:
+           extra_bindings: list[Binding] | None = None,
+           stop_event: threading.Event | None = None) -> None:
     """글로벌 핫키를 등록하고 이벤트 루프를 실행한다.
 
     Args:
@@ -165,6 +189,9 @@ def listen(modifier: str, key: str, on_toggle: Callable[[], None],
     )
     Quartz.CGEventTapEnable(tap, True)
 
+    run_loop = Quartz.CFRunLoopGetCurrent()
+    _setup_stop_watcher(stop_event, tap, run_loop)
+
     labels = [f"{modifier}+{key} 로 녹음 토글"]
     for mod, k, _ in extra_bindings or []:
         labels.append(f"{mod}+{k} 로 재붙여넣기")
@@ -180,6 +207,7 @@ def listen_tap_hold(
     on_repaste: Callable[[], None] | None = None,
     repaste_key: str = "\\",
     repaste_threshold: float = 0.13,
+    stop_event: threading.Event | None = None,
 ) -> None:
     """탭 & 홀드 방식으로 글로벌 핫키를 감지한다.
 
@@ -389,6 +417,9 @@ def listen_tap_hold(
         Quartz.kCFRunLoopDefaultMode,
     )
     Quartz.CGEventTapEnable(tap, True)
+
+    run_loop = Quartz.CFRunLoopGetCurrent()
+    _setup_stop_watcher(stop_event, tap, run_loop)
 
     print(f"ttstt 대기 중... ({key} 탭+홀드로 녹음)")
     Quartz.CFRunLoopRun()
