@@ -19,6 +19,7 @@ import rumps
 from ttstt import asr, clipboard, postprocess, sounds
 from ttstt.audio import Recorder, list_input_devices
 from ttstt.config import Config, load_config, save_settings
+from ttstt.highlight import hide_highlight, show_highlight
 from ttstt.hotkey import check_accessibility, listen, listen_tap_hold
 
 
@@ -196,6 +197,7 @@ class TtsttApp(rumps.App):
             return
 
         if not self.recorder.recording:
+            show_highlight()
             self._start_recording()
         else:
             self._stop_and_process()
@@ -204,6 +206,7 @@ class TtsttApp(rumps.App):
         """녹음 시작 콜백 (tap_hold 모드용)."""
         if self._processing or self.recorder.recording:
             return
+        show_highlight()
         self._start_recording()
 
     def on_record_stop(self) -> None:
@@ -266,6 +269,7 @@ class TtsttApp(rumps.App):
             self._set_status(f"오류: {e}", "stt-idle@2x.png")
         finally:
             self._processing = False
+            hide_highlight()
 
 
 _lock_file = None

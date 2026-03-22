@@ -6,12 +6,10 @@ macOS 접근성(Accessibility) 권한이 필요하다.
 
 from __future__ import annotations
 
-import threading
-import time
-from collections.abc import Callable
-
 import ctypes
 import ctypes.util
+import threading
+from collections.abc import Callable
 
 import Quartz
 
@@ -244,6 +242,7 @@ def listen_tap_hold(
         "timer": None,
         "inject_count": 0,
         "press_flags": 0,
+        "generation": 0,  # stale timer 방어용 세대 카운터
         "repaste_pending": False,  # 첫 번째 \\ 대기 중
         "repaste_timer": None,  # 더블탭 대기 타이머
         "repaste_consumed": False,  # 더블탭 감지로 두 번째 키를 소비 중
@@ -258,21 +257,21 @@ def listen_tap_hold(
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, down)
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, up)
 
-    def _start_if_held():
+    def _start_if_held(gen):
         """타이머 콜백: threshold 경과 후에도 키가 눌려있으면 녹음 시작."""
         with lock:
-            print(f"[hotkey] timer fired: pressed={state['pressed']}, holding={state['holding']}", flush=True)
+            if gen != state["generation"]:
+                return  # stale timer — 이미 다음 press cycle
             if state["pressed"] and not state["holding"]:
                 state["holding"] = True
             else:
                 return
-        # lock 밖에서 부수효과 실행 (lock 점유 최소화)
-        bs_down = Quartz.CGEventCreateKeyboardEvent(None, 0x33, True)
-        bs_up = Quartz.CGEventCreateKeyboardEvent(None, 0x33, False)
-        Quartz.CGEventPost(Quartz.kCGHIDEventTap, bs_down)
-        Quartz.CGEventPost(Quartz.kCGHIDEventTap, bs_up)
-        print("[hotkey] on_start()", flush=True)
-        on_start()
+            # lock 유지한 채로 부수효과 실행 (on_start는 빠르게 완료됨)
+            bs_down = Quartz.CGEventCreateKeyboardEvent(None, 0x33, True)
+            bs_up = Quartz.CGEventCreateKeyboardEvent(None, 0x33, False)
+            Quartz.CGEventPost(Quartz.kCGHIDEventTap, bs_down)
+            Quartz.CGEventPost(Quartz.kCGHIDEventTap, bs_up)
+            on_start()
 
     def callback(proxy, event_type, event, refcon):
         if event_type == Quartz.kCGEventTapDisabledByTimeout:
@@ -338,31 +337,33 @@ def listen_tap_hold(
             if is_repeat:
                 return None  # 리피트 소비
 
-            if state["holding"]:
-                return None
+            with lock:
+                if state["holding"]:
+                    return None
 
-            # 키 누름 시작 — 즉시 키 다운 주입하고 타이머 시작
-            state["pressed"] = True
-            state["press_flags"] = flags
-            state["inject_count"] = 1
+                # 키 누름 시작 — 즉시 키 다운 주입하고 타이머 시작
+                state["pressed"] = True
+                state["press_flags"] = flags
+                state["generation"] += 1
+                gen = state["generation"]
+                state["inject_count"] = 1
+                if state["timer"]:
+                    state["timer"].cancel()
+                timer = threading.Timer(hold_threshold, _start_if_held, args=(gen,))
+                timer.daemon = True
+                timer.start()
+                state["timer"] = timer
+
             down = Quartz.CGEventCreateKeyboardEvent(
                 None, target_keycode, True
             )
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, down)
-            if state["timer"]:
-                state["timer"].cancel()
-            timer = threading.Timer(hold_threshold, _start_if_held)
-            timer.daemon = True
-            timer.start()
-            state["timer"] = timer
             return None
 
         elif event_type == Quartz.kCGEventKeyUp:
             with lock:
-                print(f"[hotkey] keyUp: pressed={state['pressed']}, holding={state['holding']}", flush=True)
                 # modifier 상태의 keyUp이고 우리가 추적 중이 아니면 통과
                 if not state["pressed"] and not state["holding"]:
-                    print("[hotkey] keyUp: not tracked, passing through", flush=True)
                     return event
 
                 state["pressed"] = False
@@ -373,20 +374,17 @@ def listen_tap_hold(
                 was_holding = state["holding"]
                 if was_holding:
                     state["holding"] = False
+                    on_stop()
+                    return None
 
-            if was_holding:
-                # 홀드 해제 → 녹음 중지
-                print("[hotkey] on_stop()", flush=True)
-                on_stop()
-                return None
-            else:
+            if not was_holding:
                 # 짧은 탭 → 키 다운은 이미 주입됨, 키 업만 주입
                 state["inject_count"] = 1
                 up = Quartz.CGEventCreateKeyboardEvent(
                     None, target_keycode, False
                 )
                 Quartz.CGEventPost(Quartz.kCGHIDEventTap, up)
-                return None
+            return None
 
         return event
 
