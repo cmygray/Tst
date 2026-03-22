@@ -12,6 +12,7 @@ from __future__ import annotations
 import fcntl
 import sys
 import threading
+import webbrowser
 from pathlib import Path
 
 import rumps
@@ -143,6 +144,13 @@ class TtsttApp(rumps.App):
     def _on_quit(self, _) -> None:
         self.recorder.close_stream()
         rumps.quit_application()
+
+    def notify_update(self, version: str, url: str) -> None:
+        """업데이트가 있으면 메뉴에 항목을 추가한다. 아무 스레드에서 호출 가능."""
+        item = rumps.MenuItem(
+            f"업데이트 있음 (v{version})", callback=lambda _: webbrowser.open(url),
+        )
+        self.menu.insert_before(self._settings_item.title, item)
 
     def _populate_devices(self) -> None:
         """디바이스 목록을 메뉴에 채운다."""
@@ -306,6 +314,16 @@ def main() -> None:
         _load_model(config.asr)
 
     threading.Thread(target=_preload, daemon=True).start()
+
+    # 업데이트 체크 (백그라운드)
+    def _check_updates():
+        from ttstt.updates import check_update
+        result = check_update()
+        if result:
+            version, url = result
+            app.notify_update(version, url)
+
+    threading.Thread(target=_check_updates, daemon=True).start()
 
     # 글로벌 핫키를 별도 스레드에서 실행
     app.start_hotkey()
