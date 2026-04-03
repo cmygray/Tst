@@ -42,7 +42,7 @@ class PostprocessConfig:
 @dataclass
 class HotkeyConfig:
     mode: str = "tap_hold"
-    modifier: str = "cmd+shift"
+    modifier: str = "option"
     key: str = "space"
     hold_threshold: float = 0.20
     repaste_modifier: str = "cmd+shift"

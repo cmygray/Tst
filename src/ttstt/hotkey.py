@@ -32,7 +32,10 @@ _KEY_CODES: dict[str, int] = {
 KEY_OPTIONS = list(_KEY_CODES.keys())
 
 # 설정 UI에서 사용할 modifier 프리셋
-MODIFIER_OPTIONS = ["cmd+shift", "cmd+option", "ctrl+shift", "cmd+ctrl"]
+MODIFIER_OPTIONS = [
+    "없음", "option", "cmd", "shift", "ctrl",
+    "cmd+shift", "cmd+option", "ctrl+shift", "cmd+ctrl",
+]
 
 # modifier 문자열 → CGEventFlag 매핑
 _MODIFIER_FLAGS: dict[str, int] = {
@@ -208,6 +211,7 @@ def listen_tap_hold(
     repaste_key: str = "\\",
     repaste_threshold: float = 0.13,
     stop_event: threading.Event | None = None,
+    modifier: str = "",
 ) -> None:
     """탭 & 홀드 방식으로 글로벌 핫키를 감지한다.
 
@@ -227,6 +231,8 @@ def listen_tap_hold(
     target_keycode = _KEY_CODES.get(key)
     if target_keycode is None:
         raise ValueError(f"지원하지 않는 키: {key}")
+
+    required_flags = _parse_modifier(modifier) if modifier else 0
 
     all_modifier_mask = (
         Quartz.kCGEventFlagMaskCommand
@@ -328,8 +334,8 @@ def listen_tap_hold(
         flags = Quartz.CGEventGetFlags(event) & all_modifier_mask
 
         if event_type == Quartz.kCGEventKeyDown:
-            # modifier가 눌린 상태면 통과 (Cmd+Space, Shift+Space 등)
-            if flags:
+            # 요구된 modifier 조합과 다르면 통과
+            if flags != required_flags:
                 return event
 
             is_repeat = Quartz.CGEventGetIntegerValueField(
@@ -348,6 +354,8 @@ def listen_tap_hold(
             down = Quartz.CGEventCreateKeyboardEvent(
                 None, target_keycode, True
             )
+            if required_flags:
+                Quartz.CGEventSetFlags(down, required_flags)
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, down)
             if state["timer"]:
                 state["timer"].cancel()
@@ -385,6 +393,8 @@ def listen_tap_hold(
                 up = Quartz.CGEventCreateKeyboardEvent(
                     None, target_keycode, False
                 )
+                if required_flags:
+                    Quartz.CGEventSetFlags(up, required_flags)
                 Quartz.CGEventPost(Quartz.kCGHIDEventTap, up)
                 return None
 
@@ -421,5 +431,6 @@ def listen_tap_hold(
     run_loop = Quartz.CFRunLoopGetCurrent()
     _setup_stop_watcher(stop_event, tap, run_loop)
 
-    print(f"ttstt 대기 중... ({key} 탭+홀드로 녹음)")
+    mod_label = f"{modifier}+" if modifier else ""
+    print(f"ttstt 대기 중... ({mod_label}{key} 탭+홀드로 녹음)")
     Quartz.CFRunLoopRun()
