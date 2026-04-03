@@ -13,6 +13,7 @@ import objc
 from AppKit import (
     NSBezelStyleRounded,
     NSButton,
+    NSColor,
     NSFont,
     NSMakeRect,
     NSObject,
@@ -85,7 +86,7 @@ def show_settings(
         win.orderFrontRegardless()
         return
 
-    width, height = 340, 330
+    width, height = 340, 290
     style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
     window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
         NSMakeRect(0, 0, width, height), style, 2, False
@@ -122,6 +123,16 @@ def show_settings(
     content.addSubview_(mode_popup)
 
     y -= row_h
+    content.addSubview_(_make_label("조합키", label_x, y))
+    modifier_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
+        NSMakeRect(control_x, y - 2, control_w, 26), False
+    )
+    modifier_popup.addItemsWithTitles_(MODIFIER_OPTIONS)
+    if hotkey_config.modifier in MODIFIER_OPTIONS:
+        modifier_popup.selectItemWithTitle_(hotkey_config.modifier)
+    content.addSubview_(modifier_popup)
+
+    y -= row_h
     content.addSubview_(_make_label("녹음 키", label_x, y))
     key_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
         NSMakeRect(control_x, y - 2, control_w, 26), False
@@ -129,18 +140,6 @@ def show_settings(
     key_popup.addItemsWithTitles_(KEY_OPTIONS)
     key_popup.selectItemWithTitle_(hotkey_config.key)
     content.addSubview_(key_popup)
-
-    y -= row_h
-    modifier_label = _make_label("조합키", label_x, y)
-    content.addSubview_(modifier_label)
-    modifier_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
-        NSMakeRect(control_x, y - 2, control_w, 26), False
-    )
-    modifier_popup.addItemsWithTitles_(MODIFIER_OPTIONS)
-    if hotkey_config.modifier in MODIFIER_OPTIONS:
-        modifier_popup.selectItemWithTitle_(hotkey_config.modifier)
-    modifier_popup.setEnabled_(hotkey_config.mode == "toggle")
-    content.addSubview_(modifier_popup)
 
     y -= row_h + 10
 
@@ -153,24 +152,15 @@ def show_settings(
     repaste_popup.selectItemWithTitle_(hotkey_config.repaste_key)
     content.addSubview_(repaste_popup)
 
-    y -= row_h
-    repaste_mod_label = _make_label("재붙여넣기 조합", label_x, y)
-    content.addSubview_(repaste_mod_label)
-    repaste_mod_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
-        NSMakeRect(control_x, y - 2, control_w, 26), False
-    )
-    repaste_mod_popup.addItemsWithTitles_(MODIFIER_OPTIONS)
-    if hotkey_config.repaste_modifier in MODIFIER_OPTIONS:
-        repaste_mod_popup.selectItemWithTitle_(hotkey_config.repaste_modifier)
-    # tap_hold 모드에서는 더블탭이므로 modifier 비활성
-    repaste_mod_popup.setEnabled_(hotkey_config.mode == "toggle")
-    content.addSubview_(repaste_mod_popup)
+    y -= 20
+    hint = _make_label("빠르게 두 번 누름", control_x, y, width=control_w)
+    hint.setFont_(NSFont.systemFontOfSize_(11))
+    hint.setTextColor_(NSColor.secondaryLabelColor())
+    content.addSubview_(hint)
 
     # --- 콜백 ---
     def on_mode_changed(sender):
-        is_toggle = MODE_KEYS.get(mode_popup.titleOfSelectedItem()) == "toggle"
-        modifier_popup.setEnabled_(is_toggle)
-        repaste_mod_popup.setEnabled_(is_toggle)
+        pass  # 현재 모든 컨트롤이 모드에 관계없이 활성
 
     def on_save_clicked(sender):
         selected_theme_label = theme_popup.titleOfSelectedItem()
@@ -183,7 +173,6 @@ def show_settings(
                 key=key_popup.titleOfSelectedItem(),
                 modifier=modifier_popup.titleOfSelectedItem(),
                 repaste_key=repaste_popup.titleOfSelectedItem(),
-                repaste_modifier=repaste_mod_popup.titleOfSelectedItem(),
             ),
             appearance=AppearanceConfig(icon_theme=theme_key),
         )
@@ -209,6 +198,6 @@ def show_settings(
     _refs["window"] = window
     _refs["delegate"] = delegate
     _refs["popups"] = (theme_popup, mode_popup, key_popup, modifier_popup,
-                       repaste_popup, repaste_mod_popup)
+                       repaste_popup)
 
     window.orderFrontRegardless()

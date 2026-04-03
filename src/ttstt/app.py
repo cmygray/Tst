@@ -84,6 +84,7 @@ class TtsttApp(rumps.App):
         self._hotkey_stop_event = threading.Event()
         hk = self.config.hotkey
         if hk.mode == "tap_hold":
+            tap_hold_modifier = "" if hk.modifier == "없음" else hk.modifier
             self._hotkey_thread = threading.Thread(
                 target=listen_tap_hold,
                 args=(
@@ -93,7 +94,10 @@ class TtsttApp(rumps.App):
                     hk.hold_threshold,
                     self.on_repaste,
                 ),
-                kwargs={"stop_event": self._hotkey_stop_event},
+                kwargs={
+                    "stop_event": self._hotkey_stop_event,
+                    "modifier": tap_hold_modifier,
+                },
                 daemon=True,
             )
         else:
