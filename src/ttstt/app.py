@@ -47,12 +47,18 @@ class TtsttApp(rumps.App):
 
         self._hotkey_active = True
 
+        # 회의 모드 상태
+        self._meeting_active = False
+        self._meeting_stop_event: threading.Event | None = None
+        self._meeting_thread: threading.Thread | None = None
+
         # 메뉴 구성
         self._status_item = rumps.MenuItem("대기 중", callback=None)
         self._status_item.set_callback(None)
         self._device_menu = rumps.MenuItem("입력 디바이스")
         self._populate_devices()
         self._pause_item = rumps.MenuItem("일시정지", callback=self._on_pause)
+        self._meeting_item = rumps.MenuItem("회의 시작", callback=self._on_meeting)
         self._settings_item = rumps.MenuItem("설정", callback=self._on_settings)
         self._quit_item = rumps.MenuItem("종료", callback=self._on_quit)
 
@@ -61,6 +67,7 @@ class TtsttApp(rumps.App):
             None,
             self._device_menu,
             self._pause_item,
+            self._meeting_item,
             None,
             self._settings_item,
             self._quit_item,
@@ -78,6 +85,64 @@ class TtsttApp(rumps.App):
             self._hotkey_active = True
             self._pause_item.title = "일시정지"
             self._set_status("대기 중")
+
+    def _on_meeting(self, _) -> None:
+        if not self._meeting_active:
+            self._start_meeting()
+        else:
+            self._stop_meeting()
+
+    def _start_meeting(self) -> None:
+        """회의 모드를 시작한다. 핫키 전사를 정지하고 회의 녹음을 시작."""
+        # 핫키 정지
+        if self._hotkey_stop_event:
+            self._hotkey_stop_event.set()
+        self._hotkey_active = False
+        self._pause_item.title = "재개"
+
+        # 회의 시작
+        from ttstt.meeting import run_meeting
+
+        self._meeting_stop_event = threading.Event()
+        self._meeting_thread = threading.Thread(
+            target=self._run_meeting_thread,
+            daemon=True,
+        )
+        self._meeting_active = True
+        self._meeting_item.title = "회의 종료"
+        self._pause_item.set_callback(None)  # 회의 중 일시정지 비활성
+        self._set_status("회의 중")
+        self._meeting_thread.start()
+
+    def _run_meeting_thread(self) -> None:
+        """회의 모드 스레드."""
+        from ttstt.meeting import run_meeting
+        try:
+            run_meeting(
+                self.config,
+                stop_event=self._meeting_stop_event,
+                recorder=self.recorder,
+            )
+        except Exception as e:
+            print(f"[ttstt-meeting] 오류: {e}", flush=True)
+
+    def _stop_meeting(self) -> None:
+        """회의 모드를 종료하고 핫키 전사를 재개."""
+        if self._meeting_stop_event:
+            self._meeting_stop_event.set()
+        # 스레드 종료 대기 (최대 30초 — 마지막 청크 전사 시간)
+        if self._meeting_thread:
+            self._meeting_thread.join(timeout=30)
+
+        self._meeting_active = False
+        self._meeting_item.title = "회의 시작"
+        self._pause_item.set_callback(self._on_pause)
+
+        # 핫키 재개
+        self.start_hotkey()
+        self._hotkey_active = True
+        self._pause_item.title = "일시정지"
+        self._set_status("대기 중")
 
     def start_hotkey(self) -> None:
         """핫키 리스너 스레드를 시작한다."""

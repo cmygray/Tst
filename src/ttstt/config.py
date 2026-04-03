@@ -67,12 +67,12 @@ class SoundConfig:
     stop: str = "Submarine"
 
 
-MEETING_OUTPUT_DIR = Path.home() / ".local" / "share" / "ttstt" / "meetings"
+MEETING_OUTPUT_DIR = Path.home() / "Library" / "Application Support" / "ttstt" / "meetings"
 
 
 @dataclass
 class MeetingASRConfig:
-    model: str = "mlx-community/Qwen3-ASR-0.6B-8bit"
+    model: str = "mlx-community/Qwen3-ASR-1.7B-8bit"
     max_tokens: int = 32768
     language: str = ""
     system_prompt: str = ""
