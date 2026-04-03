@@ -122,7 +122,10 @@ class TtsttApp(rumps.App):
 
     def _on_settings(self, _) -> None:
         from ttstt.settings import show_settings
-        show_settings(self.config.hotkey, self.config.appearance, self._on_settings_saved)
+        show_settings(
+            self.config.hotkey, self.config.appearance,
+            self._on_settings_saved, asr_model=self.config.asr.model,
+        )
 
     def _on_settings_saved(self, result) -> None:
         from ttstt.settings import SettingsResult
@@ -132,7 +135,13 @@ class TtsttApp(rumps.App):
 
         self.config.hotkey = result.hotkey
         self.config.appearance = result.appearance
-        save_settings(result.hotkey, result.appearance)
+        asr_changed = result.asr_model and result.asr_model != self.config.asr.model
+        if asr_changed:
+            self.config.asr.model = result.asr_model
+        save_settings(
+            result.hotkey, result.appearance,
+            asr=self.config.asr if asr_changed else None,
+        )
 
         # 아이콘 즉시 변경
         icons_dir = self._resolve_icons_dir(result.appearance.icon_theme)
@@ -301,6 +310,8 @@ def _acquire_single_instance() -> None:
 
 def main() -> None:
     """엔트리포인트."""
+    # stdout을 line-buffered로 설정 (파일 리다이렉트 시에도 즉시 출력)
+    sys.stdout.reconfigure(line_buffering=True)
     _acquire_single_instance()
     config = load_config()
 

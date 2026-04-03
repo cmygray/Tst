@@ -22,10 +22,32 @@ def _load_model(config: ASRConfig):
     if _model is not None and _current_model_id == config.model:
         return _model
 
+    # 기존 모델 해제
+    if _model is not None:
+        print(f"[asr] 기존 모델 해제: {_current_model_id}", flush=True)
+        del _model
+        _model = None
+        import gc
+        gc.collect()
+        try:
+            import mlx.core as mx
+            mx.clear_memory_cache()
+        except Exception:
+            pass
+
     from mlx_audio.stt.generate import load_model
 
     _model = load_model(config.model)
     _current_model_id = config.model
+
+    try:
+        import mlx.core as mx
+        peak_mb = mx.get_peak_memory() / 1024**2
+        active_mb = mx.get_active_memory() / 1024**2
+        print(f"[asr] 모델 로드 완료: {config.model} (메모리: active={active_mb:.0f}MB, peak={peak_mb:.0f}MB)", flush=True)
+    except Exception:
+        print(f"[asr] 모델 로드 완료: {config.model}", flush=True)
+
     return _model
 
 

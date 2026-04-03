@@ -24,7 +24,7 @@ from AppKit import (
     NSWindowStyleMaskTitled,
 )
 
-from ttstt.config import AppearanceConfig, HotkeyConfig
+from ttstt.config import ASRConfig, AppearanceConfig, HotkeyConfig
 from ttstt.hotkey import KEY_OPTIONS, MODIFIER_OPTIONS
 
 ICON_THEMES = ["speech-bubble", "blob"]
@@ -32,6 +32,12 @@ ICON_THEME_LABELS = {"speech-bubble": "말풍선", "blob": "블롭"}
 
 MODE_LABELS = {"tap_hold": "탭+홀드", "toggle": "조합키 토글"}
 MODE_KEYS = {v: k for k, v in MODE_LABELS.items()}
+
+ASR_MODEL_OPTIONS = {
+    "경량 (0.6B-8bit)": "mlx-community/Qwen3-ASR-0.6B-8bit",
+    "고성능 (1.7B-8bit)": "mlx-community/Qwen3-ASR-1.7B-8bit",
+}
+ASR_MODEL_LABELS = {v: k for k, v in ASR_MODEL_OPTIONS.items()}
 
 # 모듈 레벨에서 ObjC 객체 참조를 유지하여 GC 방지
 _refs: dict = {}
@@ -41,6 +47,7 @@ _refs: dict = {}
 class SettingsResult:
     hotkey: HotkeyConfig
     appearance: AppearanceConfig
+    asr_model: str = ""
 
 
 def _make_label(text: str, x: float, y: float, width: float = 100) -> NSTextField:
@@ -78,6 +85,7 @@ def show_settings(
     hotkey_config: HotkeyConfig,
     appearance_config: AppearanceConfig,
     on_save: Callable[[SettingsResult], None],
+    asr_model: str = "",
 ) -> None:
     """설정 NSWindow를 표시한다."""
     # 이전 창이 있으면 재사용 (GC로 인한 ObjC 크래시 방지)
@@ -86,7 +94,7 @@ def show_settings(
         win.orderFrontRegardless()
         return
 
-    width, height = 340, 290
+    width, height = 340, 330
     style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
     window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
         NSMakeRect(0, 0, width, height), style, 2, False
@@ -109,6 +117,19 @@ def show_settings(
     current_label = ICON_THEME_LABELS.get(appearance_config.icon_theme, theme_labels[0])
     theme_popup.selectItemWithTitle_(current_label)
     content.addSubview_(theme_popup)
+
+    y -= row_h
+
+    # --- ASR 모델 ---
+    content.addSubview_(_make_label("인식 모델", label_x, y))
+    asr_popup = NSPopUpButton.alloc().initWithFrame_pullsDown_(
+        NSMakeRect(control_x, y - 2, control_w, 26), False
+    )
+    asr_labels = list(ASR_MODEL_OPTIONS.keys())
+    asr_popup.addItemsWithTitles_(asr_labels)
+    current_asr_label = ASR_MODEL_LABELS.get(asr_model, asr_labels[0])
+    asr_popup.selectItemWithTitle_(current_asr_label)
+    content.addSubview_(asr_popup)
 
     y -= row_h + 10
 
@@ -167,6 +188,9 @@ def show_settings(
         theme_key = next(k for k, v in ICON_THEME_LABELS.items() if v == selected_theme_label)
         mode_key = MODE_KEYS.get(mode_popup.titleOfSelectedItem(), "tap_hold")
 
+        selected_asr_label = asr_popup.titleOfSelectedItem()
+        selected_asr_model = ASR_MODEL_OPTIONS.get(selected_asr_label, "")
+
         result = SettingsResult(
             hotkey=HotkeyConfig(
                 mode=mode_key,
@@ -175,6 +199,7 @@ def show_settings(
                 repaste_key=repaste_popup.titleOfSelectedItem(),
             ),
             appearance=AppearanceConfig(icon_theme=theme_key),
+            asr_model=selected_asr_model,
         )
         on_save(result)
         window.orderOut_(None)
@@ -197,7 +222,7 @@ def show_settings(
     # 모듈 레벨에서 강한 참조 유지 (GC 방지)
     _refs["window"] = window
     _refs["delegate"] = delegate
-    _refs["popups"] = (theme_popup, mode_popup, key_popup, modifier_popup,
-                       repaste_popup)
+    _refs["popups"] = (theme_popup, asr_popup, mode_popup, key_popup,
+                       modifier_popup, repaste_popup)
 
     window.orderFrontRegardless()

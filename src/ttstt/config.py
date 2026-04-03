@@ -24,7 +24,7 @@ DEFAULT_POSTPROCESS_PROMPT = """음성인식 결과를 교정해주세요.
 
 @dataclass
 class ASRConfig:
-    model: str = "mlx-community/Qwen3-ASR-1.7B-8bit"
+    model: str = "mlx-community/Qwen3-ASR-0.6B-8bit"
     max_tokens: int = 8192
     language: str = ""
     system_prompt: str = ""
@@ -72,7 +72,7 @@ MEETING_OUTPUT_DIR = Path.home() / ".local" / "share" / "ttstt" / "meetings"
 
 @dataclass
 class MeetingASRConfig:
-    model: str = "mlx-community/Qwen3-ASR-1.7B-8bit"
+    model: str = "mlx-community/Qwen3-ASR-0.6B-8bit"
     max_tokens: int = 32768
     language: str = ""
     system_prompt: str = ""
@@ -146,9 +146,10 @@ def _save_section(text: str, section_name: str, section_toml: str) -> str:
 def save_settings(
     hotkey: HotkeyConfig,
     appearance: AppearanceConfig,
+    asr: ASRConfig | None = None,
     path: Path | None = None,
 ) -> None:
-    """[hotkey]와 [appearance] 섹션을 config.toml에 저장한다."""
+    """[hotkey], [appearance], [asr] 섹션을 config.toml에 저장한다."""
     path = path or CONFIG_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -173,4 +174,10 @@ def save_settings(
     text = path.read_text() if path.exists() else ""
     text = _save_section(text, "hotkey", hotkey_toml)
     text = _save_section(text, "appearance", appearance_toml)
+    if asr is not None:
+        asr_toml = (
+            "[asr]\n"
+            f'model = "{_toml_str(asr.model)}"\n'
+        )
+        text = _save_section(text, "asr", asr_toml)
     path.write_text(text)
