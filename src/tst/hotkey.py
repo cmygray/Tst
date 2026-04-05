@@ -179,7 +179,7 @@ def listen(modifier: str, key: str, on_toggle: Callable[[], None],
     if tap is None:
         raise RuntimeError(
             "이벤트 탭 생성 실패. 시스템 설정 > 개인 정보 보호 및 보안 > 접근성에서 "
-            "ttstt를 허용해주세요."
+            "Tst를 허용해주세요."
         )
 
     source = Quartz.CFMachPortCreateRunLoopSource(None, tap, 0)
@@ -196,7 +196,7 @@ def listen(modifier: str, key: str, on_toggle: Callable[[], None],
     labels = [f"{modifier}+{key} 로 녹음 토글"]
     for mod, k, _ in extra_bindings or []:
         labels.append(f"{mod}+{k} 로 재붙여넣기")
-    print(f"ttstt 대기 중... ({', '.join(labels)})")
+    print(f"tst 대기 중... ({', '.join(labels)})")
     Quartz.CFRunLoopRun()
 
 
@@ -415,7 +415,7 @@ def listen_tap_hold(
     if tap is None:
         raise RuntimeError(
             "이벤트 탭 생성 실패. 시스템 설정 > 개인 정보 보호 및 보안 > 접근성에서 "
-            "ttstt를 허용해주세요."
+            "Tst를 허용해주세요."
         )
 
     source = Quartz.CFMachPortCreateRunLoopSource(None, tap, 0)
@@ -430,5 +430,5 @@ def listen_tap_hold(
     _setup_stop_watcher(stop_event, tap, run_loop)
 
     mod_label = f"{modifier}+" if modifier else ""
-    print(f"ttstt 대기 중... ({mod_label}{key} 탭+홀드로 녹음)")
+    print(f"tst 대기 중... ({mod_label}{key} 탭+홀드로 녹음)")
     Quartz.CFRunLoopRun()

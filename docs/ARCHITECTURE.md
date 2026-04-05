@@ -1,6 +1,6 @@
 # 아키텍처
 
-ttstt의 설계 결정과 모듈 구조를 설명한다.
+tst의 설계 결정과 모듈 구조를 설명한다.
 
 ## 설계 원칙
 
@@ -34,11 +34,11 @@ ttstt의 설계 결정과 모듈 구조를 설명한다.
 ## 모듈 구조
 
 ```
-src/ttstt/
+src/tst/
 ├── __init__.py      # 패키지 메타데이터
-├── __main__.py      # python -m ttstt 엔트리포인트
+├── __main__.py      # python -m tst 엔트리포인트
 ├── app.py           # 메인 오케스트레이터 (App 클래스)
-├── config.py        # 설정 로드 (~/.config/ttstt/config.toml)
+├── config.py        # 설정 로드 (~/.config/tst/config.toml)
 ├── hotkey.py        # 글로벌 단축키 (CGEventTap)
 ├── audio.py         # 마이크 녹음 (sounddevice)
 ├── asr.py           # 음성인식 (mlx-audio + Qwen3-ASR)
@@ -49,7 +49,7 @@ src/ttstt/
 
 ### app.py — 메인 오케스트레이터
 
-`TtsttApp` 클래스가 모든 모듈을 조율한다.
+`TstApp` 클래스가 모든 모듈을 조율한다.
 
 - `on_toggle()`: 핫키 콜백. 녹음 중이면 종료하고 파이프라인 실행, 아니면 녹음 시작.
 - `_process_pipeline()`: ASR → 후처리 → 클립보드 붙여넣기. **별도 스레드**에서 실행하여 CFRunLoop(이벤트 루프)를 블로킹하지 않는다.

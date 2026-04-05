@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ttstt.config import ASRConfig
+from tst.config import ASRConfig
 
 # 모델은 lazy load — 첫 호출 시에만 로드
 _model = None

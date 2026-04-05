@@ -1,6 +1,6 @@
 """설정 관리 모듈.
 
-~/.config/ttstt/config.toml 파일을 읽어 설정을 로드한다.
+~/.config/tst/config.toml 파일을 읽어 설정을 로드한다.
 파일이 없으면 기본값을 사용한다.
 """
 
@@ -11,7 +11,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-CONFIG_DIR = Path.home() / ".config" / "ttstt"
+CONFIG_DIR = Path.home() / ".config" / "tst"
 CONFIG_PATH = CONFIG_DIR / "config.toml"
 
 DEFAULT_POSTPROCESS_PROMPT = """음성인식 결과를 교정해주세요.
@@ -67,7 +67,7 @@ class SoundConfig:
     stop: str = "Submarine"
 
 
-MEETING_OUTPUT_DIR = Path.home() / "Library" / "Application Support" / "ttstt" / "meetings"
+MEETING_OUTPUT_DIR = Path.home() / "Library" / "Application Support" / "tst" / "meetings"
 
 
 @dataclass

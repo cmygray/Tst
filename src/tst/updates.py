@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import urllib.request
 
-from ttstt import __version__
+from tst import __version__
 
-_API_URL = "https://api.github.com/repos/cmygray/ttstt/releases/latest"
+_API_URL = "https://api.github.com/repos/cmygray/tst/releases/latest"
 
 
 def _parse_version(tag: str) -> tuple[int, ...]:

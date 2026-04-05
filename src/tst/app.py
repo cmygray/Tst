@@ -17,22 +17,22 @@ from pathlib import Path
 
 import rumps
 
-from ttstt import asr, clipboard, postprocess, sounds
-from ttstt.audio import Recorder, list_input_devices
-from ttstt.config import Config, load_config, save_settings
-from ttstt.highlight import hide_highlight, show_highlight
-from ttstt.hotkey import check_accessibility, listen, listen_tap_hold
+from tst import asr, clipboard, postprocess, sounds
+from tst.audio import Recorder, list_input_devices
+from tst.config import Config, load_config, save_settings
+from tst.highlight import hide_highlight, show_highlight
+from tst.hotkey import check_accessibility, listen, listen_tap_hold
 
 
-class TtsttApp(rumps.App):
-    """ttstt 메뉴바 앱."""
+class TstApp(rumps.App):
+    """tst 메뉴바 앱."""
 
     _ICONS_BASE = Path(__file__).parent / "icons"
 
     def __init__(self, config: Config):
         icons_dir = self._resolve_icons_dir(config.appearance.icon_theme)
         icon_path = str(icons_dir / "stt-idle@2x.png")
-        super().__init__("ttstt", icon=icon_path, title=None, quit_button=None)
+        super().__init__("Tst", icon=icon_path, title=None, quit_button=None)
         is_template = config.appearance.icon_theme == "speech-bubble"
         self.template = is_template
         self.config = config
@@ -101,7 +101,7 @@ class TtsttApp(rumps.App):
         self._pause_item.title = "재개"
 
         # 회의 시작
-        from ttstt.meeting import run_meeting
+        from tst.meeting import run_meeting
 
         self._meeting_stop_event = threading.Event()
         self._meeting_thread = threading.Thread(
@@ -116,7 +116,7 @@ class TtsttApp(rumps.App):
 
     def _run_meeting_thread(self) -> None:
         """회의 모드 스레드."""
-        from ttstt.meeting import run_meeting
+        from tst.meeting import run_meeting
         try:
             run_meeting(
                 self.config,
@@ -124,7 +124,7 @@ class TtsttApp(rumps.App):
                 recorder=self.recorder,
             )
         except Exception as e:
-            print(f"[ttstt-meeting] 오류: {e}", flush=True)
+            print(f"[tst-meeting] 오류: {e}", flush=True)
 
     def _stop_meeting(self) -> None:
         """회의 모드를 종료하고 핫키 전사를 재개."""
@@ -186,14 +186,14 @@ class TtsttApp(rumps.App):
         self.start_hotkey()
 
     def _on_settings(self, _) -> None:
-        from ttstt.settings import show_settings
+        from tst.settings import show_settings
         show_settings(
             self.config.hotkey, self.config.appearance,
             self._on_settings_saved, asr_model=self.config.asr.model,
         )
 
     def _on_settings_saved(self, result) -> None:
-        from ttstt.settings import SettingsResult
+        from tst.settings import SettingsResult
         result: SettingsResult
         # 설정 창에서 노출하지 않는 값 보존
         result.hotkey.hold_threshold = self.config.hotkey.hold_threshold
@@ -216,7 +216,7 @@ class TtsttApp(rumps.App):
         # 핫키 재시작
         self._restart_hotkey()
 
-        print(f"[ttstt] 설정 적용됨: theme={result.appearance.icon_theme}, "
+        print(f"[tst] 설정 적용됨: theme={result.appearance.icon_theme}, "
               f"mode={result.hotkey.mode}, key={result.hotkey.key}")
 
     def _on_quit(self, _) -> None:
@@ -306,7 +306,7 @@ class TtsttApp(rumps.App):
         if self._processing or self.recorder.recording:
             return
         if not clipboard.repaste_last():
-            print("[ttstt] 재붙여넣기할 텍스트 없음")
+            print("[tst] 재붙여넣기할 텍스트 없음")
 
     def _start_recording(self) -> None:
         if not sounds.play(self.config.sound.start):
@@ -328,15 +328,15 @@ class TtsttApp(rumps.App):
     def _process_pipeline(self, audio_data) -> None:
         try:
             if audio_data.size == 0:
-                print("[ttstt] 녹음 데이터 없음 (0 frames)")
+                print("[tst] 녹음 데이터 없음 (0 frames)")
                 self._set_status("녹음 없음", "stt-idle@2x.png")
                 return
 
             duration = len(audio_data) / self.config.audio.sample_rate
-            print(f"[ttstt] 오디오 {duration:.1f}초, 인식 중...")
+            print(f"[tst] 오디오 {duration:.1f}초, 인식 중...")
 
             text = asr.transcribe(audio_data, self.config.asr)
-            print(f"[ttstt] ASR 결과: '{text}'")
+            print(f"[tst] ASR 결과: '{text}'")
 
             if not text:
                 self._set_status("인식 실패", "stt-idle@2x.png")
@@ -345,13 +345,13 @@ class TtsttApp(rumps.App):
             if self.config.postprocess.enabled:
                 self._set_status("교정 중...", "stt-processing@2x.png")
                 text = postprocess.correct(text, self.config.postprocess)
-                print(f"[ttstt] 교정 결과: '{text}'")
+                print(f"[tst] 교정 결과: '{text}'")
 
             clipboard.paste_text(text)
             self._set_status("대기 중", "stt-idle@2x.png")
 
         except Exception as e:
-            print(f"[ttstt] 오류: {e}")
+            print(f"[tst] 오류: {e}")
             self._set_status(f"오류: {e}", "stt-idle@2x.png")
         finally:
             self._processing = False
@@ -364,12 +364,12 @@ _lock_file = None
 def _acquire_single_instance() -> None:
     """파일 락으로 단일 인스턴스를 보장한다. 프로세스 종료 시 OS가 자동 해제."""
     global _lock_file
-    lock_path = "/tmp/ttstt.lock"
+    lock_path = "/tmp/tst.lock"
     _lock_file = open(lock_path, "w")
     try:
         fcntl.flock(_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
-        print("[ttstt] 이미 실행 중입니다.")
+        print("[tst] 이미 실행 중입니다.")
         sys.exit(1)
 
 
@@ -383,21 +383,21 @@ def main() -> None:
     if not check_accessibility():
         sys.exit(1)
 
-    app = TtsttApp(config)
+    app = TstApp(config)
 
     # 스트림을 열어 디바이스 연결 유지
     app.recorder.open_stream()
 
     # ASR 모델을 미리 로드 (첫 인식 지연 제거)
     def _preload():
-        from ttstt.asr import _load_model
+        from tst.asr import _load_model
         _load_model(config.asr)
 
     threading.Thread(target=_preload, daemon=True).start()
 
     # 업데이트 체크 (백그라운드)
     def _check_updates():
-        from ttstt.updates import check_update
+        from tst.updates import check_update
         result = check_update()
         if result:
             version, url = result

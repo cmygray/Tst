@@ -1,11 +1,11 @@
 # 설정 가이드
 
-ttstt의 모든 설정 항목을 설명한다.
+tst의 모든 설정 항목을 설명한다.
 
 ## 설정 파일 위치
 
 ```
-~/.config/ttstt/config.toml
+~/.config/tst/config.toml
 ```
 
 파일이 없으면 모든 항목에 기본값이 사용된다.
@@ -13,8 +13,8 @@ ttstt의 모든 설정 항목을 설명한다.
 ## 초기 설정
 
 ```bash
-mkdir -p ~/.config/ttstt
-cp config.example.toml ~/.config/ttstt/config.toml
+mkdir -p ~/.config/tst
+cp config.example.toml ~/.config/tst/config.toml
 ```
 
 ## 설정 항목

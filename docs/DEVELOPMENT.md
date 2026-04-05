@@ -1,6 +1,6 @@
 # 개발 가이드
 
-ttstt 개발 환경 설정, 빌드, 배포 방법을 설명한다.
+tst 개발 환경 설정, 빌드, 배포 방법을 설명한다.
 
 ## 요구사항
 
@@ -12,8 +12,8 @@ ttstt 개발 환경 설정, 빌드, 배포 방법을 설명한다.
 ## 개발 환경 설정
 
 ```bash
-git clone https://github.com/cmygray/ttstt.git
-cd ttstt
+git clone https://github.com/cmygray/tst.git
+cd tst
 uv sync --extra dev --prerelease=allow
 ```
 
@@ -21,10 +21,10 @@ uv sync --extra dev --prerelease=allow
 
 ```bash
 # 직접 실행
-uv run ttstt
+uv run tst
 
 # python -m 실행
-uv run python -m ttstt
+uv run python -m tst
 ```
 
 첫 실행 시 ASR 모델이 HuggingFace에서 다운로드된다. 약 1.7GB (8bit 모델).
@@ -32,13 +32,13 @@ uv run python -m ttstt
 ## 프로젝트 구조
 
 ```
-ttstt/
+tst/
 ├── README.md               # 프로젝트 소개
 ├── pyproject.toml           # 패키지 설정 및 의존성
 ├── config.example.toml      # 설정 파일 예시
-├── ttstt.spec               # PyInstaller 빌드 스펙
+├── tst.spec               # PyInstaller 빌드 스펙
 ├── src/
-│   └── ttstt/
+│   └── tst/
 │       ├── __init__.py      # 패키지 메타데이터
 │       ├── __main__.py      # python -m 엔트리포인트
 │       ├── app.py           # 메인 오케스트레이터
@@ -64,10 +64,10 @@ ttstt/
 ## .app 번들 빌드
 
 ```bash
-uv run pyinstaller ttstt.spec
+uv run pyinstaller tst.spec
 ```
 
-결과물: `dist/ttstt.app`
+결과물: `dist/tst.app`
 
 ### 빌드 시 주의사항
 
@@ -88,21 +88,21 @@ git push origin v0.1.0
 2. .app 번들 빌드:
 
 ```bash
-uv run pyinstaller ttstt.spec
+uv run pyinstaller tst.spec
 ```
 
 3. .app을 zip으로 압축:
 
 ```bash
 cd dist
-zip -r ttstt-v0.1.0-macos-arm64.zip ttstt.app
+zip -r tst-v0.1.0-macos-arm64.zip tst.app
 ```
 
 4. GitHub Release 생성:
 
 ```bash
 gh release create v0.1.0 \
-  dist/ttstt-v0.1.0-macos-arm64.zip \
+  dist/tst-v0.1.0-macos-arm64.zip \
   --title "v0.1.0" \
   --notes "최초 릴리스"
 ```
@@ -124,7 +124,7 @@ gh release create v0.1.0 \
 
 > 시스템 설정 > 개인 정보 보호 및 보안 > 접근성 > 터미널.app 허용
 
-.app 번들로 배포할 경우, ttstt.app 자체에 권한을 부여해야 한다.
+.app 번들로 배포할 경우, tst.app 자체에 권한을 부여해야 한다.
 
 ## 트러블슈팅
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from ttstt.config import PostprocessConfig
+from tst.config import PostprocessConfig
 
 # 모델은 lazy load
 _model = None

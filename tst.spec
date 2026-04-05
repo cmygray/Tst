@@ -2,10 +2,10 @@
 """PyInstaller spec 파일. macOS .app 번들을 생성한다.
 
 빌드 방법:
-    uv run pyinstaller ttstt.spec
+    uv run pyinstaller tst.spec
 
 결과물:
-    dist/ttstt.app
+    dist/tst.app
 """
 
 from PyInstaller.utils.hooks import collect_all
@@ -18,11 +18,11 @@ mlx_audio_datas, mlx_audio_binaries, mlx_audio_hiddenimports = collect_all("mlx_
 mlx_lm_datas, mlx_lm_binaries, mlx_lm_hiddenimports = collect_all("mlx_lm")
 
 a = Analysis(
-    ["src/ttstt/__main__.py"],
+    ["src/tst/__main__.py"],
     pathex=[],
     binaries=mlx_binaries + mlx_audio_binaries + mlx_lm_binaries,
     datas=mlx_datas + mlx_audio_datas + mlx_lm_datas + [
-        ("src/ttstt/icons", "ttstt/icons"),
+        ("src/tst/icons", "tst/icons"),
     ],
     hiddenimports=[
         "sounddevice",
@@ -51,7 +51,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="ttstt",
+    name="tst",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -67,20 +67,20 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name="ttstt",
+    name="tst",
 )
 
 app = BUNDLE(
     coll,
-    name="ttstt.app",
-    icon="ttstt.icns",
-    bundle_identifier="com.cmygray.ttstt",
+    name="tst.app",
+    icon="tst.icns",
+    bundle_identifier="com.cmygray.tst",
     info_plist={
-        "CFBundleName": "ttstt",
-        "CFBundleDisplayName": "ttstt",
-        "CFBundleVersion": "0.3.0",
-        "CFBundleShortVersionString": "0.3.0",
-        "NSMicrophoneUsageDescription": "ttstt는 음성인식을 위해 마이크 접근 권한이 필요합니다.",
+        "CFBundleName": "Tst",
+        "CFBundleDisplayName": "Tst",
+        "CFBundleVersion": "0.6.0",
+        "CFBundleShortVersionString": "0.6.0",
+        "NSMicrophoneUsageDescription": "Tst는 음성인식을 위해 마이크 접근 권한이 필요합니다.",
         "LSUIElement": True,  # Dock에 아이콘을 표시하지 않음 (백그라운드 앱)
     },
 )

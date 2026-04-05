@@ -3,15 +3,15 @@
 set -euo pipefail
 
 VERSION="${1:?Usage: ./scripts/release.sh v0.2.0}"
-ARTIFACT="dist/ttstt-${VERSION}-macos-arm64.dmg"
+ARTIFACT="dist/tst-${VERSION}-macos-arm64.dmg"
 
 echo "=== 클린 빌드 ==="
 rm -rf build dist
-uv run python -m PyInstaller --noconfirm ttstt.spec
+uv run python -m PyInstaller --noconfirm tst.spec
 
 echo "=== DMG 생성 ==="
-hdiutil create -volname "ttstt" \
-  -srcfolder dist/ttstt.app \
+hdiutil create -volname "tst" \
+  -srcfolder dist/tst.app \
   -ov -format UDZO \
   "$ARTIFACT"
 

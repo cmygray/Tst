@@ -24,8 +24,8 @@ from AppKit import (
     NSWindowStyleMaskTitled,
 )
 
-from ttstt.config import ASRConfig, AppearanceConfig, HotkeyConfig
-from ttstt.hotkey import KEY_OPTIONS, MODIFIER_OPTIONS
+from tst.config import ASRConfig, AppearanceConfig, HotkeyConfig
+from tst.hotkey import KEY_OPTIONS, MODIFIER_OPTIONS
 
 ICON_THEMES = ["speech-bubble", "blob"]
 ICON_THEME_LABELS = {"speech-bubble": "말풍선", "blob": "블롭"}
@@ -99,7 +99,7 @@ def show_settings(
     window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
         NSMakeRect(0, 0, width, height), style, 2, False
     )
-    window.setTitle_("ttstt 설정")
+    window.setTitle_("Tst 설정")
     window.center()
 
     content = window.contentView()

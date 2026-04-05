@@ -14,9 +14,9 @@ from pathlib import Path
 
 import numpy as np
 
-from ttstt import asr
-from ttstt.audio import Recorder
-from ttstt.config import ASRConfig, Config, load_config
+from tst import asr
+from tst.audio import Recorder
+from tst.config import ASRConfig, Config, load_config
 
 
 def _format_timestamp(seconds: float) -> str:
@@ -81,12 +81,12 @@ def run_meeting(
             device=config.audio.device,
         )
 
-    print(f"[ttstt-meeting] 출력: {output_path}", flush=True)
-    print(f"[ttstt-meeting] 청크: {chunk_duration}초", flush=True)
-    print("[ttstt-meeting] ASR ���델 로�� 중...", flush=True)
+    print(f"[tst-meeting] 출력: {output_path}", flush=True)
+    print(f"[tst-meeting] 청크: {chunk_duration}초", flush=True)
+    print("[tst-meeting] ASR ���델 로�� 중...", flush=True)
 
     asr._load_model(asr_config)
-    print("[ttstt-meeting] ASR 모델 로드 완료", flush=True)
+    print("[tst-meeting] ASR 모델 로드 완료", flush=True)
 
     with open(output_path, "w") as f:
         f.write(f"# 회의록 {timestamp}\n\n")
@@ -120,13 +120,13 @@ def run_meeting(
             ts_start = _format_timestamp(elapsed)
             ts_end = _format_timestamp(chunk_end_elapsed)
 
-            print(f"[ttstt-meeting] 전사 중... [{ts_start} ~ {ts_end}]", flush=True)
+            print(f"[tst-meeting] 전사 중... [{ts_start} ~ {ts_end}]", flush=True)
             text = asr.transcribe(audio, asr_config)
 
             if text.strip():
                 with open(output_path, "a") as f:
                     f.write(f"[{ts_start} ~ {ts_end}]\n{text.strip()}\n\n")
-                print(f"[ttstt-meeting] 청크 저장: {len(text)}자", flush=True)
+                print(f"[tst-meeting] 청크 저장: {len(text)}자", flush=True)
 
             elapsed = chunk_end_elapsed
             chunk_start = now
@@ -144,7 +144,7 @@ def run_meeting(
             ts_start = _format_timestamp(elapsed)
             ts_end = _format_timestamp(chunk_end_elapsed)
 
-            print(f"[ttstt-meeting] 마지막 청크 전사 중... [{ts_start} ~ {ts_end}]", flush=True)
+            print(f"[tst-meeting] 마지막 청크 전사 중... [{ts_start} ~ {ts_end}]", flush=True)
             text = asr.transcribe(audio, asr_config)
 
             if text.strip():
@@ -153,7 +153,7 @@ def run_meeting(
 
         if own_recorder:
             recorder.close_stream()
-        print(f"[ttstt-meeting] 종료. 출력: {output_path}", flush=True)
+        print(f"[tst-meeting] 종료. 출력: {output_path}", flush=True)
 
     return output_path
 

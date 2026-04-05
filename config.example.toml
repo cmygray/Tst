@@ -1,5 +1,5 @@
-# ttstt 설정 파일
-# 이 파일을 ~/.config/ttstt/config.toml 에 복사해서 사용하세요.
+# tst 설정 파일
+# 이 파일을 ~/.config/tst/config.toml 에 복사해서 사용하세요.
 
 [asr]
 # ASR 모델 (HuggingFace model ID)
@@ -77,7 +77,7 @@ stop = "Submarine"
 # 청크 길이 (초). 이 간격마다 녹음을 전사하여 파일에 추가한다.
 chunk_duration = 60
 
-# 출력 디렉토리 (빈 문자열이면 ~/.local/share/ttstt/meetings)
+# 출력 디렉토리 (빈 문자열이면 ~/.local/share/tst/meetings)
 output_dir = ""
 
 [meeting.asr]

@@ -1539,8 +1539,8 @@ wheels = [
 ]
 
 [[package]]
-name = "ttstt"
-version = "0.1.0"
+name = "tst"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "mlx-audio" },
