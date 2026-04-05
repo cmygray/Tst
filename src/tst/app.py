@@ -10,6 +10,8 @@ rumps 메뉴바 앱으로 동작한다.
 from __future__ import annotations
 
 import fcntl
+import os
+import signal
 import sys
 import threading
 import webbrowser
@@ -368,6 +370,8 @@ def _acquire_single_instance() -> None:
     _lock_file = open(lock_path, "w")
     try:
         fcntl.flock(_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _lock_file.write(str(os.getpid()))
+        _lock_file.flush()
     except OSError:
         print("[tst] 이미 실행 중입니다.")
         sys.exit(1)
@@ -407,6 +411,9 @@ def main() -> None:
 
     # 글로벌 핫키를 별도 스레드에서 실행
     app.start_hotkey()
+
+    # SIGUSR1로 회의 모드 토글
+    signal.signal(signal.SIGUSR1, lambda *_: app._on_meeting(None))
 
     # rumps 이벤트 루프 (메인 스레드)
     app.run()

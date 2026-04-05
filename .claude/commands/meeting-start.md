@@ -11,17 +11,18 @@
 
 컨텍스트가 파일이면 읽어서 내용을 파악하세요. 링크라면 WebFetch로 가져오세요.
 
-## 2단계: tst-meeting 실행
+## 2단계: 회의 모드 시작
 
-회의 시작이 확정되면 아래 커맨드를 **백그라운드**로 실행하세요:
+회의 시작이 확정되면 실행 중인 tst 앱에 SIGUSR1 신호를 보내 회의 모드를 토글하세요:
 
 ```
-uv run tst-meeting
+kill -USR1 $(cat /tmp/tst.lock)
 ```
 
-실행 시 stdout에 출력되는 정보를 기록하세요:
-- `출력:` 뒤의 파일 경로 → 전사 파일 경로
-- `PID:` 뒤의 숫자 → 종료 시 사용
+신호 전송 후 1~2초 대기한 뒤, 전사 파일 경로를 탐지하세요:
+```
+ls -t ~/Library/Application\ Support/tst/meetings/*.md | head -1
+```
 
 ### mdgate 연동 (optional)
 
@@ -73,7 +74,7 @@ tst-meeting이 시작되고 전사 파일 경로를 확보한 뒤, mdgate가 설
 ## 4단계: 회의 종료
 
 사용자가 회의 종료를 요청하면:
-1. tst-meeting 프로세스를 종료: `kill <PID>`
+1. SIGUSR1 신호를 다시 보내 회의 모드 종료: `kill -USR1 $(cat /tmp/tst.lock)`
 2. 마지막 전사 파일을 읽고 남은 청크 처리
 3. 라이브 노트에 회의 종료 시각과 전체 요약 추가
 4. mdgate가 실행 중이었으면 `mdgate --stop`으로 종료
