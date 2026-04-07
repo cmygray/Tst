@@ -1,6 +1,6 @@
 [project]
 name = "tst"
-version = "0.6.0"
+version = "0.6.1"
 description = "macOS 글로벌 단축키 기반 음성인식 → 텍스트 입력 도구. Qwen3-ASR + MLX."
 readme = "README.md"
 license = "MIT"

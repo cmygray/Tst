@@ -78,8 +78,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleName": "Tst",
         "CFBundleDisplayName": "Tst",
-        "CFBundleVersion": "0.6.0",
-        "CFBundleShortVersionString": "0.6.0",
+        "CFBundleVersion": "0.6.1",
+        "CFBundleShortVersionString": "0.6.1",
         "NSMicrophoneUsageDescription": "Tst는 음성인식을 위해 마이크 접근 권한이 필요합니다.",
         "LSUIElement": True,  # Dock에 아이콘을 표시하지 않음 (백그라운드 앱)
     },
