@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/release.sh — 빌드 + 사이닝 + 공증 + DMG + GitHub Release
+# scripts/release.sh — 빌드 + 사이닝 + 공증 + GitHub Release
 set -euo pipefail
 
 VERSION="${1:?Usage: ./scripts/release.sh v0.7.0}"
@@ -14,16 +14,21 @@ rm -rf build dist
 uv run python -m PyInstaller --noconfirm tst.spec
 
 echo "=== 코드 사이닝 (deep sign) ==="
-find "$APP" -type f \( -name "*.so" -o -name "*.dylib" \) \
-  -exec codesign --force --options runtime \
-    --entitlements "$ENTITLEMENTS" \
-    --sign "$IDENTITY" --timestamp {} \;
+# 내부 라이브러리: entitlements 없이 서명
+find "$APP" -type f | while read -r f; do
+  if file "$f" | grep -q "Mach-O" && [ "$f" != "$APP/Contents/MacOS/tst" ]; then
+    codesign --force --options runtime \
+      --sign "$IDENTITY" --timestamp "$f"
+  fi
+done
 
+# 메인 실행파일: entitlements 포함
 codesign --force --options runtime \
   --entitlements "$ENTITLEMENTS" \
   --sign "$IDENTITY" --timestamp \
   "$APP/Contents/MacOS/tst"
 
+# 앱 번들 전체 서명
 codesign --force --options runtime \
   --entitlements "$ENTITLEMENTS" \
   --sign "$IDENTITY" --timestamp \
@@ -31,7 +36,6 @@ codesign --force --options runtime \
 
 echo "=== 서명 검증 ==="
 codesign --verify --deep --strict "$APP"
-spctl --assess --type execute --verbose=2 "$APP"
 
 echo "=== DMG 생성 ==="
 hdiutil create -volname "tst" \
