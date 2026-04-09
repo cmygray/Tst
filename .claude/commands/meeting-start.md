@@ -8,6 +8,7 @@
 - 회의 주제와 목표
 - 참고할 컨텍스트 (파일 경로, 링크, 또는 구두 설명)
 - 회의에서 다뤄야 할 안건이 있다면 공유 요청
+- 종료 후 공유할 Slack 채널 (예: `#proj-writing`. 없으면 생략 가능)
 
 컨텍스트가 파일이면 읽어서 내용을 파악하세요. 링크라면 WebFetch로 가져오세요.
 
@@ -77,7 +78,36 @@ tst-meeting이 시작되고 전사 파일 경로를 확보한 뒤, mdgate가 설
 1. SIGUSR1 신호를 다시 보내 회의 모드 종료: `kill -USR1 $(cat /tmp/tst.lock)`
 2. 마지막 전사 파일을 읽고 남은 청크 처리
 3. 라이브 노트에 회의 종료 시각과 전체 요약 추가
-4. mdgate가 실행 중이었으면 `mdgate --stop`으로 종료
+4. 전사본과 라이브 노트를 Obsidian으로 보존:
+   - 파일명 패턴: `meeting-<주제-kebab-case>-<YYYY-MM-DD>.md` (예: `meeting-eng-biweekly-2026-04-01.md`)
+   - 저장 경로: `$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/wiki/raw/transcripts/`
+   - **전사본** (`<timestamp>.md`): 아래 프론트매터 삽입 후 저장
+   - **라이브 노트** (`meeting_notes_live.md`): 아래 프론트매터 삽입 후 저장 (파일명에 `-notes` suffix)
+   - 프론트매터 형식:
+     ```yaml
+     ---
+     title: "<회의 주제>"
+     created: <YYYY-MM-DD>
+     updated: <YYYY-MM-DD>
+     type: transcript
+     tags: [transcript, meeting]
+     source: meeting
+     language: ko
+     speakers: [won]
+     audio_file:
+     canonical_path: raw/transcripts/<파일명>
+     status: raw
+     summary_page:
+     related_pages: []
+     ---
+     ```
+5. 1단계에서 Slack 채널을 받았으면, 라이브 노트 요약을 해당 채널에 공유 (slack_send_message MCP 도구 사용):
+   ```
+   *[회의 주제]* 회의록
+   • 주요 논의: (핵심 내용 2~3줄)
+   • Obsidian: raw/transcripts/<파일명>
+   ```
+6. mdgate가 실행 중이었으면 `mdgate --stop`으로 종료
 
 ## 주의사항
 

@@ -99,12 +99,15 @@ Transcripts are saved to `~/Library/Application Support/tst/meetings/`.
 
 Tst includes a `/meeting-start` slash command for [Claude Code](https://claude.ai/claude-code) that automates the full meeting workflow: start recording, monitor transcripts, write live notes, and summarize on end.
 
-**Install the skill** (run from the Tst project directory):
+**Install the skill:**
 
 ```bash
-mkdir -p ~/.claude/commands
-cp .claude/commands/meeting-start.md ~/.claude/commands/meeting-start.md
+mkdir -p ~/.claude/commands && \
+curl -fsSL https://raw.githubusercontent.com/cmygray/Tst/main/.claude/commands/meeting-start.md \
+  -o ~/.claude/commands/meeting-start.md
 ```
+
+Re-run the same command to update to the latest version.
 
 Then in any Claude Code session:
 
