@@ -12,6 +12,8 @@
 
 컨텍스트가 파일이면 읽어서 내용을 파악하세요. 링크라면 WebFetch로 가져오세요.
 
+Slack 채널을 받은 경우, 즉시 `slack_search_channels`로 채널 ID를 조회해 기억해두세요. 종료 시 지연을 방지하기 위해 이 단계에서 미리 확보합니다.
+
 ## 2단계: 회의 모드 시작
 
 회의 시작이 확정되면 실행 중인 tst 앱에 SIGUSR1 신호를 보내 회의 모드를 토글하세요:
@@ -24,6 +26,8 @@ kill -USR1 $(cat /tmp/tst.lock)
 ```
 ls -t ~/Library/Application\ Support/tst/meetings/*.md | head -1
 ```
+
+그 다음 `meeting_notes_live.md`를 초기화하세요. Write 도구 사용 전 Read가 필요하므로, 파일 존재 여부와 무관하게 Read를 먼저 실행한 뒤 새 내용으로 덮어씁니다.
 
 ### mdgate 연동 (optional)
 
